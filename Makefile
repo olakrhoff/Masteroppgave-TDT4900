@@ -23,7 +23,7 @@ execute: build
 run: clean setup execute teardown
 
 teardown:
-		rm -f $(CURDIR)/data/*
+		#rm -f $(CURDIR)/data/*
 
 reset: 
 		rm -rf $(CURDIR)/plots
