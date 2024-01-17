@@ -1,0 +1,7 @@
+This is a template file to show how the measurment data created from the algorithm will look
+The thought is that each line should represent a given datapoint, then a sequence of lines
+with the same OPT's will be in the same plot, further the ones with the same number of AGENTS
+will form a line
+
+OPT1, OPT2, ..., OPN: AGENTS, GOODS, RUNS: TIME1, TIME2, ..., TIMEN
+
