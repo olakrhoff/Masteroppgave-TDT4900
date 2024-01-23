@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <random>
 #include <stack>
+#include <float.h>
 
 using namespace std;
 
@@ -51,18 +52,96 @@ typedef struct state
 /**
  * This function is suppose to take an allocation and find the value of the
  * allocation based on the value functions.
+ *
+ * This is now using a minimisation cirterion, but it is not quite MMS yet
  */
-uint64_t value_of_allocation(const vector<vector<uint64_t>> &allocation, 
-                             const vector<vector<uint64_t>> &valuation)
+double alpha_MMS_of_allocation(const vector<vector<uint64_t>> &allocation, 
+                               const vector<vector<uint64_t>> &valuation,
+                               const vector<double> &agent_MMS)
 {
-    // For now under testing of the traversal of the search space we will
-    // just use the utilitarian valuation.
-    uint64_t value {};
+    double value = DBL_MAX;
     for (int i = 0; i < allocation.size(); ++i)
+    {
+        double temp {};
         for (auto good : allocation.at(i))
-            value += valuation.at(i).at(good);
-
+            temp += valuation.at(i).at(good);
+        temp /= agent_MMS.at(i);
+        if (temp < value)
+            value = temp;
+    }
     return value;
+}
+
+double min_bundle(const vector<vector<uint64_t>> &allocation,
+                  const vector<uint64_t> &valuation)
+{
+    double value = DBL_MAX;
+    for (int i = 0; i < allocation.size(); ++i)
+    {
+        double temp {};
+        for (auto good : allocation.at(i))
+            temp += valuation.at(good);
+        if (temp < value)
+            value = temp;
+    }
+    return value;
+}
+
+/**
+ * This function is finds the MMS for an agent, given it's value function
+ * and the number of agents in the mix
+ */
+double find_MMS(const vector<uint64_t> &agent_value_function,
+                uint64_t num_agents)
+{
+    uint64_t num_goods = agent_value_function.size();
+
+    stack<state_t> state_stack {};
+    state_t start_state(num_agents);
+    state_stack.push(start_state);
+
+    state_t best_solution_yet = start_state;
+    double value_of_best_solution {};
+    while (!state_stack.empty())
+    {
+        auto current_state = state_stack.top();
+        state_stack.pop();
+
+        // If we have allocated all the goods we now need to evaluate the
+        // allocation and score it
+        if (current_state.goods_allocated == num_goods)
+        {
+            double value = min_bundle(current_state.allocation, 
+                                      agent_value_function);
+            if (value > value_of_best_solution)
+            {
+                cout << "Current best solution is: " << value << endl;
+                value_of_best_solution = value;
+                best_solution_yet = current_state;
+            }
+            continue;
+        }
+        
+        // Loop over for each agent and add to the stack the state in which
+        // the given agent gets the new good
+        for (int i = 0; i < num_agents; ++i)
+        {
+            auto new_state = current_state;
+            uint64_t new_good = current_state.goods_allocated;
+            new_state.allocation.at(i).emplace_back(new_good);
+            new_state.goods_allocated++; 
+            state_stack.push(new_state);
+        }
+        // Add the case where the good goes to charity as well, this needs to
+        // be taken into account
+        auto new_state = current_state;
+        uint64_t new_good = current_state.goods_allocated;
+        new_state.charity.emplace_back(new_good);
+        new_state.goods_allocated++; 
+        state_stack.push(new_state);
+    }
+
+    return value_of_best_solution;
 }
 
 /**
@@ -70,10 +149,17 @@ uint64_t value_of_allocation(const vector<vector<uint64_t>> &allocation,
  * Here we will run the B&B algorithm to solve the fair allocation of
  * budget symmetry illustion maximin share (BSIMMS)
  */
-vector<vector<uint64_t>> BBCMMS(const vector<vector<uint64_t>> &agents)
+pair<vector<vector<uint64_t>>, double> BBCMMS(const vector<vector<uint64_t>> &agents)
 {
     uint64_t num_goods = agents.at(0).size();
     uint64_t num_agents = agents.size();
+    vector<double> agents_MMS {};
+    for (int i = 0; i < num_agents; ++i)
+    {
+        cout << "Finding MMS for agent " << i + 1 << endl;
+        agents_MMS.emplace_back(find_MMS(agents.at(i), num_agents));
+    }
+    cout << "MMS found for all agents" << endl;
     vector<uint64_t> picking_order_goods {};
     vector<uint64_t> picking_order_agents {};
     for (int i = 0; i < agents.at(0).size(); ++i)
@@ -95,7 +181,7 @@ vector<vector<uint64_t>> BBCMMS(const vector<vector<uint64_t>> &agents)
     state_stack.push(start_state);
 
     state_t best_solution_yet = start_state;
-    uint64_t value_of_best_solution {};
+    double value_of_best_solution {};
     while (!state_stack.empty())
     {
         auto current_state = state_stack.top();
@@ -105,7 +191,8 @@ vector<vector<uint64_t>> BBCMMS(const vector<vector<uint64_t>> &agents)
         // allocation and score it
         if (current_state.goods_allocated == num_goods)
         {
-            uint64_t value = value_of_allocation(current_state.allocation, agents);
+            double value = alpha_MMS_of_allocation(current_state.allocation,
+                                                     agents, agents_MMS);
             if (value > value_of_best_solution)
             {
                 cout << "Current best solution is: " << value << endl;
@@ -134,7 +221,7 @@ vector<vector<uint64_t>> BBCMMS(const vector<vector<uint64_t>> &agents)
         state_stack.push(new_state);
     }
 
-    return best_solution_yet.allocation;
+    return {best_solution_yet.allocation, value_of_best_solution};
 }
 
 int main(int argc, char **args)
@@ -181,7 +268,9 @@ int main(int argc, char **args)
     }
     */
 
-    vector<vector<uint64_t>> allocation = BBCMMS(agents);
+    vector<vector<uint64_t>> allocation {};
+    double alpha_MMS {};
+    tie(allocation, alpha_MMS) = BBCMMS(agents);
 
     
     for (int i = 0; i < allocation.size(); ++i)
@@ -195,6 +284,7 @@ int main(int argc, char **args)
         cout << "with sum value: " << sum <<endl;
     }
 
+    cout << "The alpha-MMS value of the allocation is: " << alpha_MMS << endl;
 
 
     return EXIT_SUCCESS;
