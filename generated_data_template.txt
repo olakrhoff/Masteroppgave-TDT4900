@@ -1,0 +1,7 @@
+This is a template for how the generated data will be formatted.
+Also we will discuss a bit how this data generation has been done.
+
+We might want to classify a few different datasets.
+    * A dataset where the majority of the agents have a concencus on the goods (ranking)
+    * A dataset where there are many different skewed valuations of the goods (very subjective)
+    * We might want a dataset where we have a more uniform distribution of value

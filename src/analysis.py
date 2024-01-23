@@ -8,9 +8,8 @@ def get_analysis_files(folder_path):
     try:
         # Get the list of files in the folder
         files = os.listdir(folder_path)
-        
+                
         filtered_files = []
-
         # Filter out the files that are for analysis
         for file in files:
             if file.startswith("analysis"):
