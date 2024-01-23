@@ -2,7 +2,7 @@ CC = g++
 CFLAGS = -std=c++20 -O3
 
 CURDIR = '$(PWD)'
-.PHONY: setup teardown run clean execute build reset analysis
+.PHONY: setup teardown run clean execute build reset analysis run_bb
 
 setup:
 		mkdir -p plots data src/bin
@@ -21,6 +21,10 @@ execute: build
 		python3 src/analysis.py # Run the analysis of the generated data
 
 run: clean setup execute teardown
+
+run_bb: clean setup build
+		./src/bin/BBCMMS data/input_data_test.txt
+
 
 analysis:
 		python3 src/analysis.py
