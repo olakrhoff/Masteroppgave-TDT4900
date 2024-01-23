@@ -161,7 +161,6 @@ pair<vector<vector<uint64_t>>, double> BBCMMS(const vector<vector<uint64_t>> &ag
     }
     cout << "MMS found for all agents" << endl;
     vector<uint64_t> picking_order_goods {};
-    vector<uint64_t> picking_order_agents {};
     for (int i = 0; i < agents.at(0).size(); ++i)
         picking_order_goods.push_back(i);
 
@@ -170,7 +169,6 @@ pair<vector<vector<uint64_t>>, double> BBCMMS(const vector<vector<uint64_t>> &ag
     random_device rd;
     mt19937 g(rd());
     shuffle(picking_order_goods.begin(), picking_order_goods.end(), g);
-    shuffle(picking_order_agents.begin(), picking_order_agents.end(), g);
  
     // We want to traverse the search space in a depth-first manner
     // Therefore we create a stack to keep track of where we are in
@@ -207,7 +205,7 @@ pair<vector<vector<uint64_t>>, double> BBCMMS(const vector<vector<uint64_t>> &ag
         for (int i = 0; i < agents.size(); ++i)
         {
             auto new_state = current_state;
-            uint64_t new_good = current_state.goods_allocated;
+            uint64_t new_good = picking_order_goods.at(current_state.goods_allocated);
             new_state.allocation.at(i).emplace_back(new_good);
             new_state.goods_allocated++; 
             state_stack.push(new_state);
@@ -270,8 +268,10 @@ int main(int argc, char **args)
 
     vector<vector<uint64_t>> allocation {};
     double alpha_MMS {};
+    auto start_time = chrono::high_resolution_clock::now();
     tie(allocation, alpha_MMS) = BBCMMS(agents);
-
+    auto end_time = chrono::high_resolution_clock::now();
+    auto duration = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
     
     for (int i = 0; i < allocation.size(); ++i)
     {
@@ -285,7 +285,7 @@ int main(int argc, char **args)
     }
 
     cout << "The alpha-MMS value of the allocation is: " << alpha_MMS << endl;
-
+    cout << "Time: " << duration.count() / 1000 << " ms" << endl;
 
     return EXIT_SUCCESS;
 }
