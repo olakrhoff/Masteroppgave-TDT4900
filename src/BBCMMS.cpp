@@ -1,6 +1,9 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <algorithm>
+#include <random>
+#include <stack>
 
 using namespace std;
 
@@ -29,6 +32,109 @@ vector<uint64_t> parse_line_to_values(const string &line)
     for (auto string_val : split(line, ' '))
         values.emplace_back(stoi(string_val));
     return values;
+}
+
+typedef struct state
+{
+  vector<vector<uint64_t>> allocation {};
+  vector<uint64_t> charity {};
+  uint64_t goods_allocated {};
+
+  state(uint64_t num_agents)
+  {
+      for (int i = 0; i < num_agents; ++i)
+          allocation.emplace_back(vector<uint64_t>());
+  }
+
+} state_t;
+
+/**
+ * This function is suppose to take an allocation and find the value of the
+ * allocation based on the value functions.
+ */
+uint64_t value_of_allocation(const vector<vector<uint64_t>> &allocation, 
+                             const vector<vector<uint64_t>> &valuation)
+{
+    // For now under testing of the traversal of the search space we will
+    // just use the utilitarian valuation.
+    uint64_t value {};
+    for (int i = 0; i < allocation.size(); ++i)
+        for (auto good : allocation.at(i))
+            value += valuation.at(i).at(good);
+
+    return value;
+}
+
+/**
+ * This is the main funtion for the algorithm
+ * Here we will run the B&B algorithm to solve the fair allocation of
+ * budget symmetry illustion maximin share (BSIMMS)
+ */
+vector<vector<uint64_t>> BBCMMS(const vector<vector<uint64_t>> &agents)
+{
+    uint64_t num_goods = agents.at(0).size();
+    uint64_t num_agents = agents.size();
+    vector<uint64_t> picking_order_goods {};
+    vector<uint64_t> picking_order_agents {};
+    for (int i = 0; i < agents.at(0).size(); ++i)
+        picking_order_goods.push_back(i);
+
+    // Since we don't have any picking order optimisation set yet we do a
+    // little random shuffle of the picking order to get some more rounded data
+    random_device rd;
+    mt19937 g(rd());
+    shuffle(picking_order_goods.begin(), picking_order_goods.end(), g);
+    shuffle(picking_order_agents.begin(), picking_order_agents.end(), g);
+ 
+    // We want to traverse the search space in a depth-first manner
+    // Therefore we create a stack to keep track of where we are in
+    // the current state
+    
+    stack<state_t> state_stack {};
+    state_t start_state(num_agents);
+    state_stack.push(start_state);
+
+    state_t best_solution_yet = start_state;
+    uint64_t value_of_best_solution {};
+    while (!state_stack.empty())
+    {
+        auto current_state = state_stack.top();
+        state_stack.pop();
+
+        // If we have allocated all the goods we now need to evaluate the
+        // allocation and score it
+        if (current_state.goods_allocated == num_goods)
+        {
+            uint64_t value = value_of_allocation(current_state.allocation, agents);
+            if (value > value_of_best_solution)
+            {
+                cout << "Current best solution is: " << value << endl;
+                value_of_best_solution = value;
+                best_solution_yet = current_state;
+            }
+            continue;
+        }
+        
+        // Loop over for each agent and add to the stack the state in which
+        // the given agent gets the new good
+        for (int i = 0; i < agents.size(); ++i)
+        {
+            auto new_state = current_state;
+            uint64_t new_good = current_state.goods_allocated;
+            new_state.allocation.at(i).emplace_back(new_good);
+            new_state.goods_allocated++; 
+            state_stack.push(new_state);
+        }
+        // Add the case where the good goes to charity as well, this needs to
+        // be taken into account
+        auto new_state = current_state;
+        uint64_t new_good = current_state.goods_allocated;
+        new_state.charity.emplace_back(new_good);
+        new_state.goods_allocated++; 
+        state_stack.push(new_state);
+    }
+
+    return best_solution_yet.allocation;
 }
 
 int main(int argc, char **args)
@@ -65,13 +171,28 @@ int main(int argc, char **args)
     
     file.close();
 
-
+    /*
     for (int i = 0; i < agents.size(); ++i)
     {
         cout << "Agent " << i + 1 << " has values: ";
         for (auto val : agents.at(i))
             cout << val << " ";
         cout << endl;
+    }
+    */
+
+    vector<vector<uint64_t>> allocation = BBCMMS(agents);
+
+    
+    for (int i = 0; i < allocation.size(); ++i)
+    {
+        cout << "Agent " << i + 1 << " got goods: ";
+        for (auto good : allocation.at(i))
+            cout << good + 1 << " ";
+        uint64_t sum {};
+        for (auto g : allocation.at(i))
+            sum += agents.at(i).at(g);
+        cout << "with sum value: " << sum <<endl;
     }
 
 
