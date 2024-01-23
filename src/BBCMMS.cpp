@@ -11,7 +11,7 @@ using namespace std;
 /**
  * This is code that I have reused from my earlier projects, look at my github 
  */
-vector<string> split(const string &line, const char delimiter)
+vector<string> split(const string &line, const string &delimiter)
 {
     vector<string> result {};
 
@@ -19,33 +19,48 @@ vector<string> split(const string &line, const char delimiter)
     while (temp.find(delimiter) != -1)
     {
         result.emplace_back(temp.substr(0, temp.find(delimiter)));
-        temp = temp.substr(temp.find(delimiter) + 1);
+        temp = temp.substr(temp.find(delimiter) + delimiter.length());
     }
     result.emplace_back(temp);
 
     return result;
 }
 
-vector<uint64_t> parse_line_to_values(const string &line)
+typedef struct good
 {
-    vector<uint64_t> values {};
-    
-    for (auto string_val : split(line, ' '))
-        values.emplace_back(stoi(string_val));
-    return values;
+    uint64_t value {};
+    uint64_t weight {};
+
+    good(uint64_t value, uint64_t weight) : value(value), weight(weight)
+    {}
+
+} good_t;
+
+vector<good_t> parse_line_to_values(const string &line)
+{
+    vector<good_t> goods {};
+
+    for (auto string_pair : split(line, ", "))
+    {
+        cout << "Parsed line: " << string_pair << endl;
+        auto string_val = split(string_pair, " ");
+        goods.emplace_back(stoi(string_val.at(0)), stoi(string_val.at(1)));
+    }
+
+    return goods;
 }
 
 typedef struct state
 {
-  vector<vector<uint64_t>> allocation {};
-  vector<uint64_t> charity {};
-  uint64_t goods_allocated {};
+    vector<vector<uint64_t>> allocation {};
+    vector<uint64_t> charity {};
+    uint64_t goods_allocated {};
 
-  state(uint64_t num_agents)
-  {
-      for (int i = 0; i < num_agents; ++i)
-          allocation.emplace_back(vector<uint64_t>());
-  }
+    state(uint64_t num_agents)
+    {
+        for (int i = 0; i < num_agents; ++i)
+            allocation.emplace_back(vector<uint64_t>());
+    }
 
 } state_t;
 
@@ -56,15 +71,15 @@ typedef struct state
  * This is now using a minimisation cirterion, but it is not quite MMS yet
  */
 double alpha_MMS_of_allocation(const vector<vector<uint64_t>> &allocation, 
-                               const vector<vector<uint64_t>> &valuation,
-                               const vector<double> &agent_MMS)
+        const vector<vector<good_t>> &valuation,
+        const vector<double> &agent_MMS)
 {
     double value = DBL_MAX;
     for (int i = 0; i < allocation.size(); ++i)
     {
         double temp {};
         for (auto good : allocation.at(i))
-            temp += valuation.at(i).at(good);
+            temp += valuation.at(i).at(good).value;
         temp /= agent_MMS.at(i);
         if (temp < value)
             value = temp;
@@ -73,14 +88,14 @@ double alpha_MMS_of_allocation(const vector<vector<uint64_t>> &allocation,
 }
 
 double min_bundle(const vector<vector<uint64_t>> &allocation,
-                  const vector<uint64_t> &valuation)
+        const vector<good_t> &valuation)
 {
     double value = DBL_MAX;
     for (int i = 0; i < allocation.size(); ++i)
     {
         double temp {};
         for (auto good : allocation.at(i))
-            temp += valuation.at(good);
+            temp += valuation.at(good).value;
         if (temp < value)
             value = temp;
     }
@@ -91,8 +106,8 @@ double min_bundle(const vector<vector<uint64_t>> &allocation,
  * This function is finds the MMS for an agent, given it's value function
  * and the number of agents in the mix
  */
-double find_MMS(const vector<uint64_t> &agent_value_function,
-                uint64_t num_agents)
+double find_MMS(const vector<good_t> &agent_value_function,
+        uint64_t num_agents)
 {
     uint64_t num_goods = agent_value_function.size();
 
@@ -112,7 +127,7 @@ double find_MMS(const vector<uint64_t> &agent_value_function,
         if (current_state.goods_allocated == num_goods)
         {
             double value = min_bundle(current_state.allocation, 
-                                      agent_value_function);
+                    agent_value_function);
             if (value > value_of_best_solution)
             {
                 cout << "Current best solution is: " << value << endl;
@@ -121,7 +136,7 @@ double find_MMS(const vector<uint64_t> &agent_value_function,
             }
             continue;
         }
-        
+
         // Loop over for each agent and add to the stack the state in which
         // the given agent gets the new good
         for (int i = 0; i < num_agents; ++i)
@@ -149,7 +164,7 @@ double find_MMS(const vector<uint64_t> &agent_value_function,
  * Here we will run the B&B algorithm to solve the fair allocation of
  * budget symmetry illustion maximin share (BSIMMS)
  */
-pair<vector<vector<uint64_t>>, double> BBCMMS(const vector<vector<uint64_t>> &agents)
+pair<vector<vector<uint64_t>>, double> BBCMMS(const vector<vector<good_t>> &agents)
 {
     uint64_t num_goods = agents.at(0).size();
     uint64_t num_agents = agents.size();
@@ -169,11 +184,11 @@ pair<vector<vector<uint64_t>>, double> BBCMMS(const vector<vector<uint64_t>> &ag
     random_device rd;
     mt19937 g(rd());
     shuffle(picking_order_goods.begin(), picking_order_goods.end(), g);
- 
+
     // We want to traverse the search space in a depth-first manner
     // Therefore we create a stack to keep track of where we are in
     // the current state
-    
+
     stack<state_t> state_stack {};
     state_t start_state(num_agents);
     state_stack.push(start_state);
@@ -190,7 +205,7 @@ pair<vector<vector<uint64_t>>, double> BBCMMS(const vector<vector<uint64_t>> &ag
         if (current_state.goods_allocated == num_goods)
         {
             double value = alpha_MMS_of_allocation(current_state.allocation,
-                                                     agents, agents_MMS);
+                    agents, agents_MMS);
             if (value > value_of_best_solution)
             {
                 cout << "Current best solution is: " << value << endl;
@@ -199,7 +214,7 @@ pair<vector<vector<uint64_t>>, double> BBCMMS(const vector<vector<uint64_t>> &ag
             }
             continue;
         }
-        
+
         // Loop over for each agent and add to the stack the state in which
         // the given agent gets the new good
         for (int i = 0; i < agents.size(); ++i)
@@ -234,18 +249,17 @@ int main(int argc, char **args)
 
 
     // Read in the file data
-   
-
     ifstream file;
-    
+
     file.open(filename);
     if (!file.is_open())
     {
         cout << "Could not open file: " << filename << endl;
         return EXIT_FAILURE;
     }
+
     string temp {};
-    vector<vector<uint64_t>> agents {};
+    vector<vector<good_t>> agents {};
     while (!file.eof())
     {
         getline(file, temp);
@@ -253,18 +267,8 @@ int main(int argc, char **args)
             continue;
         agents.emplace_back(parse_line_to_values(temp));
     }
-    
-    file.close();
 
-    /*
-    for (int i = 0; i < agents.size(); ++i)
-    {
-        cout << "Agent " << i + 1 << " has values: ";
-        for (auto val : agents.at(i))
-            cout << val << " ";
-        cout << endl;
-    }
-    */
+    file.close();
 
     vector<vector<uint64_t>> allocation {};
     double alpha_MMS {};
@@ -272,7 +276,7 @@ int main(int argc, char **args)
     tie(allocation, alpha_MMS) = BBCMMS(agents);
     auto end_time = chrono::high_resolution_clock::now();
     auto duration = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
-    
+
     for (int i = 0; i < allocation.size(); ++i)
     {
         cout << "Agent " << i + 1 << " got goods: ";
@@ -280,7 +284,7 @@ int main(int argc, char **args)
             cout << good + 1 << " ";
         uint64_t sum {};
         for (auto g : allocation.at(i))
-            sum += agents.at(i).at(g);
+            sum += agents.at(i).at(g).value;
         cout << "with sum value: " << sum <<endl;
     }
 
