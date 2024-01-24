@@ -23,7 +23,7 @@ execute: build
 run: clean setup execute teardown
 
 run_bb: clean setup build
-		./src/bin/BBCMMS data/input_data_test.txt
+		./src/bin/BBCMMS -d data/input_data_test.txt
 
 
 analysis:

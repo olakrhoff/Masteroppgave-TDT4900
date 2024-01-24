@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -5,10 +6,43 @@
 #include <random>
 #include <stack>
 #include <float.h>
+#include <getopt.h>
+
 
 using namespace std;
 
 typedef uint64_t weight_t;
+
+string data_in_filepath;
+
+/**
+ * This function handles all the options sent into the program.
+ * It sets flags for optimisations that are enabled and what type of output
+ * is expected to be preinted and to where.
+ *
+ * -d (data): the input data filepath
+ * -o (optimisation): activate optimistation
+ */
+void handle_options(int argc, char **argv)
+{
+    int code {};
+    while ((code = getopt(argc, argv, "d:o::")) != -1)
+    {
+        switch (code)
+        {
+            case 'o':
+                cout << "Argument 'o' detected with option: " << optarg << endl;
+                break;
+            case 'd':
+                cout << "File path detected: " << optarg << endl;
+                data_in_filepath = optarg;
+                break;
+            default:
+                cout << "Parsing error for the options: " << (char)optopt << endl;
+                exit(EXIT_FAILURE);
+        }
+    }
+}
 
 /**
  * This is code that I have reused from my earlier projects, look at my github 
@@ -189,7 +223,6 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
                     agent.goods);
             if (value > value_of_best_solution)
             {
-                cout << "Current best solution is: " << value << endl;
                 value_of_best_solution = value;
                 best_solution_yet = current_state;
             }
@@ -235,6 +268,7 @@ pair<vector<vector<uint64_t>>, double> BBCMMS(const vector<agent_t> &agents,
     {
         cout << "Finding MMS for agent " << i + 1 << endl;
         agents_MMS.emplace_back(find_MMS(agents.at(i), num_agents, weights));
+        cout << "MMS for agent " << i + 1 << " is: " << agents_MMS.back() << endl;
     }
     cout << "MMS found for all agents" << endl;
     vector<uint64_t> picking_order_goods {};
@@ -270,7 +304,6 @@ pair<vector<vector<uint64_t>>, double> BBCMMS(const vector<agent_t> &agents,
                     agents, agents_MMS);
             if (value > value_of_best_solution)
             {
-                cout << "Current best solution is: " << value << endl;
                 value_of_best_solution = value;
                 best_solution_yet = current_state;
             }
@@ -301,24 +334,20 @@ pair<vector<vector<uint64_t>>, double> BBCMMS(const vector<agent_t> &agents,
     return {best_solution_yet.get_allocation().goods_for_agents, value_of_best_solution};
 }
 
-int main(int argc, char **args)
+int main(int argc, char **argv)
 {
-    if (argc != 2)
-    {
-        cout << "The program needs an argument, as a filepath to the input data" << endl;
-        return EXIT_FAILURE;
-    }
-    string filename = args[1];
-    cout << "Starting branch and bound for batch: " << filename << endl;
+    handle_options(argc, argv);
+
+    cout << "Starting branch and bound for batch: " << data_in_filepath << endl;
 
 
     // Read in the file data
     ifstream file;
 
-    file.open(filename);
+    file.open(data_in_filepath);
     if (!file.is_open())
     {
-        cout << "Could not open file: " << filename << endl;
+        cout << "Could not open file: " << data_in_filepath << endl;
         return EXIT_FAILURE;
     }
 
