@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -std=c++20 -O3
+CFLAGS = -std=c++20 -O3 -g
 
 CURDIR = '$(PWD)'
 .PHONY: setup teardown run clean execute build reset analysis run_bb
@@ -8,8 +8,8 @@ setup:
 		mkdir -p plots data src/bin
 
 clean:  
-		rm -f $(CURDIR)/src/bin/*
-		rm -f $(CURDIR)/plots/*
+		rm -rf $(CURDIR)/src/bin/*
+		rm -rf $(CURDIR)/plots/*
 
 build:
 		$(CC) $(CFLAGS) $(CURDIR)/src/generate_dataset.cpp -o $(CURDIR)/src/bin/generate_dataset
