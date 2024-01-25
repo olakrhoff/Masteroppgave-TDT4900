@@ -11,8 +11,8 @@ def exponential_fitting(x_vals, y_vals):
     print(x_vals)
     cols = 2
     
-    # The model we are fitting is: y = c1*n^(m*c2)
-    # We linearise it to: ln(y) = ln(c1) + m*(c2*ln(n))
+    # The model we are fitting is: y = c1*e^(m*c2)
+    # We linearise it to: ln(y) = ln(c1) + m*(c2*1)
     #                     ln(y) = k1     + m*k2
     # Linear model:       y     = a      + x*b
 
@@ -24,16 +24,22 @@ def exponential_fitting(x_vals, y_vals):
     b = np.ones((rows, 1))
     b[:, 0] = [np.log(y) for y in y_vals]
 
-    # We do a QR-factorisation of A to have a better conditioning number
+    # We do a QR-factorisation of A to have a better conditioning number than
+    # if we used ATA = A.T @ A
+    # This gives us the system: Ax = b
+    #                           QRx= b
+    #                           Rx = Q.Tb
+    #                           Rx = d
+    # Q is an orthogonal matrix, which gives us: Q^-1 = Q.T
     Q, R = np.linalg.qr(A)
     d = Q.T @ b
     k1, k2 = np.linalg.solve(R, d)
     # k1 = ln(c1)
     c1 = np.exp(k1)[0] 
-    # k2 = c2*ln(n)
-    c2 = (k2 )[0]
+    # k2 = c2
+    c2 = k2[0]
 
-    x = np.linspace(x_vals[0], x_vals[-1], 100)
+    x = np.linspace(x_vals[0], x_vals[-1], 1000)
     y = [c1*(np.exp(val * c2)) for val in x]
     cond = np.linalg.cond(R)
     
@@ -45,7 +51,7 @@ def exponential_fitting(x_vals, y_vals):
     residuals2 = [r**2 for r in residuals]
     SE = sum(residuals2)
     m = rows
-    RMSE = np.sqrt(SE // m)
+    RMSE = np.sqrt(SE / m)
 
     return x, y, cond, RMSE
 
@@ -98,11 +104,14 @@ def analyse(file_path):
                 nodes.append(num_nodes)
                 a.append(agents)
 
-    plt.scatter(x_vals, y_vals, label='No. agents: ' + a[0])
+    plt.scatter(x_vals, [val / 1000000 for val in y_vals], label='No. agents: ' + a[0])
 
-    model_x, model_y, condition_number, _ = fit_data_to_model(x_vals, y_vals, "EXP")
+    model_x, model_y, condition_number, RMSE = fit_data_to_model(x_vals, y_vals, "EXP")
 
-    plt.plot(model_x, model_y, label='Exponential model, cond: ' + str(condition_number)) # + ", RMSE: " + str(RMSE))
+    plt.plot(model_x, [val / 1000000 for val in model_y],
+             label='Exponential model, cond: ' +
+             "{:.2e}".format(condition_number) + 
+             ", RMSE: " + "{:.2e}".format(RMSE))
 
     plt.xlabel('No. goods')
     plt.ylabel('Time (s)')
