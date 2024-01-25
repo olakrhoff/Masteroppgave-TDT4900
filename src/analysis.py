@@ -1,8 +1,63 @@
 import os
 import matplotlib.pyplot as plt
+import numpy as np
 
 save_path = 'plots/'
 data_folder_path = 'data'
+
+
+def exponential_fitting(x_vals, y_vals):
+    rows = len(x_vals)
+    print(x_vals)
+    cols = 2
+    
+    # The model we are fitting is: y = c1*n^(m*c2)
+    # We linearise it to: ln(y) = ln(c1) + m*(c2*ln(n))
+    #                     ln(y) = k1     + m*k2
+    # Linear model:       y     = a      + x*b
+
+    # Model the data x-axis observations
+    A = np.ones((rows, cols))
+    A[:, 1] = [x for x in x_vals]
+    
+    # Model the data y-axis measurments
+    b = np.ones((rows, 1))
+    b[:, 0] = [np.log(y) for y in y_vals]
+
+    # We do a QR-factorisation of A to have a better conditioning number
+    Q, R = np.linalg.qr(A)
+    d = Q.T @ b
+    k1, k2 = np.linalg.solve(R, d)
+    # k1 = ln(c1)
+    c1 = np.exp(k1)[0] 
+    # k2 = c2*ln(n)
+    c2 = (k2 )[0]
+
+    x = np.linspace(x_vals[0], x_vals[-1], 100)
+    y = [c1*(np.exp(val * c2)) for val in x]
+    cond = np.linalg.cond(R)
+    
+    residuals = []
+    for i in range(len(x_vals)):
+        r = y_vals[i] - (c1*(np.exp(x_vals[i] * c2)))
+        residuals.append(r)
+    print(residuals)
+    residuals2 = [r**2 for r in residuals]
+    SE = sum(residuals2)
+    m = rows
+    RMSE = np.sqrt(SE // m)
+
+    return x, y, cond, RMSE
+
+
+def fit_data_to_model(x_vals, y_vals, model_type):
+    if model_type == "LIN":
+        print("TODO: Implement linear model fitting")
+    elif model_type == "EXP":
+        return exponential_fitting(x_vals, y_vals)
+    else:
+        print("Did not recoginise the model_type: " + model_type)
+        exit(1)
 
 def get_analysis_files(folder_path):
     try:
@@ -30,42 +85,24 @@ def analyse(file_path):
     x_vals = [] # X-axis
     y_vals = [] # Y-axis
     nodes = []
-    node = []
-    x = []
-    y = []
     a = [] # No. of agents for the lines
-    prev_len = 1
     with open(file_path, 'r') as file:
         for line in file:
             seg = line.split(': ')
             agents, goods, _, num_nodes = seg[1].split(', ')
             measurments = [float(x) for x in seg[2].split(', ')]
-            if len(a) == 0 or agents != a[-1]:
-                if len(a) > 0:
-                    #plt.plot(x, y, label='No. agents: ' + a[-1])
-                    x_vals.append(x)
-                    y_vals.append(y)
-                    nodes.append(node)
-                    x = []
-                    y = []
-                    node = []
-                    prev_len = len(a)
-    
-                a.append(agents)
             
-            x.append(goods)
-            data = sum(measurments) / len(measurments)
-            y.append(data)
-            node.append(num_nodes)
+            for m in measurments: 
+                x_vals.append(int(goods))
+                y_vals.append(m)
+                nodes.append(num_nodes)
+                a.append(agents)
 
-    # Plot the last line we detected
-    #plt.plot(x, y, label='No. agents: ' + agents[-1])
-    x_vals.append(x)
-    y_vals.append(y)
-    nodes.append(node)
-    
-    for i in range(len(x_vals)):
-        plt.plot(x_vals[i], [y//1000000 for y in y_vals[i]], label='No. agents: ' + a[i])
+    plt.scatter(x_vals, y_vals, label='No. agents: ' + a[0])
+
+    model_x, model_y, condition_number, _ = fit_data_to_model(x_vals, y_vals, "EXP")
+
+    plt.plot(model_x, model_y, label='Exponential model, cond: ' + str(condition_number)) # + ", RMSE: " + str(RMSE))
 
     plt.xlabel('No. goods')
     plt.ylabel('Time (s)')
@@ -74,18 +111,7 @@ def analyse(file_path):
     plt.savefig(save_path + file_path.split('/')[-1].split('.')[0] + ".png")
 
     plt.close()
-
-
-    for i in range(len(x_vals)):
-        plt.plot(x_vals[i], nodes[i], label='No. agents: ' + a[i])
-
-
-    plt.xlabel('No. goods')
-    plt.ylabel('Nodes visited')
-    plt.title(file_path.split('/')[-1])
-    plt.legend()
-    plt.savefig(save_path + "nodes_" + file_path.split('/')[-1].split('.')[0] + ".png")
-
+    plt.clf()
 
 def start_analysis():
     print("Starting analysis...")
