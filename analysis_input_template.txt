@@ -3,5 +3,5 @@ The thought is that each line should represent a given datapoint, then a sequenc
 with the same OPT's will be in the same plot, further the ones with the same number of AGENTS
 will form a line
 
-OPT1, OPT2, ..., OPN: AGENTS, GOODS, RUNS: <TIME1, NODES1>, <TIME2, NODES2>, ..., <TIMEN, NODESN>
+OPT1, OPT2, ..., OPN: AGENTS, GOODS, RUNS, NODES: TIME1, TIME2, ..., TIMEN
 

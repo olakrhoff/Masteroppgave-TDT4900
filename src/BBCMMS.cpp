@@ -13,36 +13,6 @@ using namespace std;
 
 typedef uint64_t weight_t;
 
-string data_in_filepath;
-
-/**
- * This function handles all the options sent into the program.
- * It sets flags for optimisations that are enabled and what type of output
- * is expected to be preinted and to where.
- *
- * -d (data): the input data filepath
- * -o (optimisation): activate optimistation
- */
-void handle_options(int argc, char **argv)
-{
-    int code {};
-    while ((code = getopt(argc, argv, "d:o::")) != -1)
-    {
-        switch (code)
-        {
-            case 'o':
-                cout << "Argument 'o' detected with option: " << optarg << endl;
-                break;
-            case 'd':
-                cout << "File path detected: " << optarg << endl;
-                data_in_filepath = optarg;
-                break;
-            default:
-                cout << "Parsing error for the options: " << (char)optopt << endl;
-                exit(EXIT_FAILURE);
-        }
-    }
-}
 
 /**
  * This is code that I have reused from my earlier projects, look at my github 
@@ -60,6 +30,149 @@ vector<string> split(const string &line, const string &delimiter)
     result.emplace_back(temp);
 
     return result;
+}
+
+typedef enum OPTION_X
+{
+    GOODS,
+    AGENTS,
+    N_OVER_M
+} OPTION_X_T;
+
+typedef enum OPTION_Y
+{
+    TIME,
+    NODES
+} OPTION_Y_T;
+
+string data_in_filepath;
+string data_out_filepath;
+OPTION_X_T x_axis_option {GOODS};
+uint64_t x_axis_lower_bound {}, x_axis_upper_bound {1}; 
+OPTION_Y_T y_axis_option {TIME};
+
+/**
+ * This function handles all the options sent into the program.
+ * It sets flags for optimisations that are enabled and what type of output
+ * is expected to be preinted and to where.
+ *
+ * -d (data in): the input data filepath
+ * -o (data out): the output data filepath
+ * -x[from:to] (x-axis): the data for the x-axis
+ *      g: GOODS
+ *      a: AGENTS
+ *      n: N_OVER_M
+ * -y (y-axis): the data for the y-axis
+ *      t: TIME
+ *      n: NODES
+ */
+void handle_options(int argc, char **argv)
+{
+    int code {};
+    while ((code = getopt(argc, argv, "d:o:x:y:")) != -1)
+    {
+        switch (code)
+        {
+            case 'o':
+                data_out_filepath = optarg; 
+                break;
+            case 'd':
+                data_in_filepath = optarg;
+                break;
+            case 'x':
+                {
+                    switch (*optarg)
+                    {
+                        case 'g':
+                            x_axis_option = GOODS;
+                            break;
+                        case 'a':
+                            x_axis_option = AGENTS;
+                            break;
+                        case 'n':
+                            x_axis_option = N_OVER_M;
+                            break;
+                        default:
+                            cout << "Did not recognise the argument for -x: '" << optarg << "'" << endl;
+                            exit(EXIT_FAILURE);
+                    }
+                    string temp = optarg;
+                    temp = temp.substr(1);
+                    auto bounds = split(temp, ":");
+                    x_axis_lower_bound = stoi(bounds.at(0));
+                    x_axis_upper_bound = stoi(bounds.at(1));
+                    break;
+                }
+            case 'y':
+                switch (*optarg)
+                {
+                    case 't':
+                        y_axis_option = TIME;
+                        break;
+                    case 'n':
+                        y_axis_option = NODES;
+                        break;
+                    default:
+                        cout << "Did not recognise the argument for -y: '" << optarg << "'" << endl;
+                        exit(EXIT_FAILURE);
+                }
+                break;
+            default:
+                cout << "Parsing error for the options: " << (char)optopt << endl;
+                exit(EXIT_FAILURE);
+        }
+    }
+}
+
+void write_data_to_file(const vector<uint64_t> &times)
+{
+    ofstream file;
+    
+    switch (x_axis_option)
+    {
+        case GOODS:
+            data_out_filepath += "_GOODS";
+            break;
+        case AGENTS:
+            data_out_filepath += "_AGENTS";
+            break;
+        case N_OVER_M:
+            data_out_filepath += "_NOVERM";
+            break;
+    }
+
+    switch (y_axis_option)
+    {
+        case TIME:
+            data_out_filepath += "_TIME";
+            break;
+        case NODES:
+            data_out_filepath += "_NODES";
+            break;
+    }
+    data_out_filepath += ".txt";
+
+    file.open(data_out_filepath);
+    if (!file.is_open())
+    {
+        cout << "Could not open file: " << data_out_filepath << endl;
+        exit(EXIT_FAILURE);
+    }
+
+
+    //Write the timestamp for each of the instances
+    //TODO: extend such that we run multiple instances for each case
+    for (int i = 0; i < times.size(); ++i)
+    {
+        // Write all optimisations that is turned on
+        //TODO
+        file << ": ";
+        //Write AGENTS, GOODS, RUNS, NODES:
+        file << "3, " << i + x_axis_lower_bound << ", 1, 0: ";
+        file << times.at(i) << endl;
+    }
+
+    file.close();
 }
 
 typedef struct good
@@ -372,27 +485,54 @@ int main(int argc, char **argv)
     file.close();
     cout << "Data is parsed" << endl;
 
-
-    vector<vector<uint64_t>> allocation {};
-    double alpha_MMS {};
-    auto start_time = chrono::high_resolution_clock::now();
-    tie(allocation, alpha_MMS) = BBCMMS(agents, weights);
-    auto end_time = chrono::high_resolution_clock::now();
-    auto duration = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
-
-    for (int i = 0; i < allocation.size(); ++i)
+    if (weights.size() != agents.at(0).goods.size())
     {
-        cout << "Agent " << i + 1 << " got goods: ";
-        for (auto good : allocation.at(i))
-            cout << good + 1 << " ";
-        uint64_t sum {};
-        for (auto g : allocation.at(i))
-            sum += agents.at(i).goods.at(g).value;
-        cout << "with sum value: " << sum <<endl;
+        cout << "Number of weights and goods does not match" << endl;
+        exit(EXIT_FAILURE);
     }
 
-    cout << "The alpha-MMS value of the allocation is: " << alpha_MMS << endl;
-    cout << "Time: " << duration.count() / 1000 << " ms" << endl;
+    vector<uint64_t> times {};
+
+    if (x_axis_upper_bound > agents.at(0).goods.size())
+    {
+        cout << "Correcting UPPER BOUND from: " << x_axis_upper_bound << " to: ";
+        x_axis_upper_bound =  agents.at(0).goods.size(); 
+        cout << x_axis_upper_bound << endl;
+    }
+    for (int run = x_axis_lower_bound; run <= x_axis_upper_bound; ++run)
+    {
+        vector<agent_t> run_agents = agents;
+        for (auto &a : run_agents)
+            a.goods = {a.goods.begin(), a.goods.begin() + run};
+        vector<weight_t> run_weights = {weights.begin(), weights.begin() + run};
+
+        vector<vector<uint64_t>> allocation {};
+        double alpha_MMS {};
+        auto start_time = chrono::high_resolution_clock::now();
+        tie(allocation, alpha_MMS) = BBCMMS(run_agents, run_weights);
+        auto end_time = chrono::high_resolution_clock::now();
+        auto duration = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
+
+        for (int i = 0; i < allocation.size(); ++i)
+        {
+            cout << "Agent " << i + 1 << " got goods: ";
+            for (auto good : allocation.at(i))
+                cout << good + 1 << " ";
+            uint64_t sum {};
+            for (auto g : allocation.at(i))
+                sum += agents.at(i).goods.at(g).value;
+            cout << "with sum value: " << sum <<endl;
+        }
+
+        cout << "The alpha-MMS value of the allocation is: " << alpha_MMS << endl;
+        cout << "Time: " << duration.count() / 1000 << " ms" << endl;
+
+        times.emplace_back(duration.count());
+    }
+
+    
+    write_data_to_file(times);
+
 
     return EXIT_SUCCESS;
 }

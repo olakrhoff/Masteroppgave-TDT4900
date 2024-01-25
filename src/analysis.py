@@ -38,10 +38,8 @@ def analyse(file_path):
     with open(file_path, 'r') as file:
         for line in file:
             seg = line.split(': ')
-            agents, goods, _ = seg[1].split(', ')
+            agents, goods, _, num_nodes = seg[1].split(', ')
             measurments = [float(x) for x in seg[2].split(', ')]
-            num_nodes = measurments[-1]
-            measurments = measurments[0:-1]
             if len(a) == 0 or agents != a[-1]:
                 if len(a) > 0:
                     #plt.plot(x, y, label='No. agents: ' + a[-1])
@@ -67,7 +65,7 @@ def analyse(file_path):
     nodes.append(node)
     
     for i in range(len(x_vals)):
-        plt.plot(x_vals[i], y_vals[i], label='No. agents: ' + a[i])
+        plt.plot(x_vals[i], [y//1000000 for y in y_vals[i]], label='No. agents: ' + a[i])
 
     plt.xlabel('No. goods')
     plt.ylabel('Time (s)')
