@@ -322,7 +322,7 @@ double upper_bound(const vector<agent_t> &agents, const vector<weight_t> &weight
                    const vector<double> &MMS, const state_t &current_state)
 {
     auto num_agents = current_state.get_allocation().goods_for_agents.size();
-    auto num_goods = current_state.get_allocation().weight.size();
+    auto num_goods = weights.size();
 
     auto num_varaibles = num_agents * num_goods + 1;
 
@@ -330,10 +330,10 @@ double upper_bound(const vector<agent_t> &agents, const vector<weight_t> &weight
     for (int i = 0; i < num_varaibles - 1; ++i)
         c.emplace_back(0);
     c.emplace_back(1);
-    
+
     vector<vector<double>> A {};
     vector<double> zeros {};
-    for (int i = 0; i < num_varaibles + 1; ++i)
+    for (int i = 0; i < num_varaibles; ++i)
         zeros.emplace_back(0);
     
     // Add all the budget constraints
@@ -342,8 +342,8 @@ double upper_bound(const vector<agent_t> &agents, const vector<weight_t> &weight
         auto agent = agents.at(i);
         auto temp = zeros;
 
-        auto offset = i * weights.size();
-        for (int j = 0; j < weights.size(); ++j)
+        auto offset = i * num_goods;
+        for (int j = 0; j < num_goods; ++j)
             temp.at(j + offset) = weights.at(j);
 
 
@@ -355,24 +355,38 @@ double upper_bound(const vector<agent_t> &agents, const vector<weight_t> &weight
         auto agent = agents.at(i);
         auto temp = zeros;
 
-        auto offset = i * weights.size();
-        for (int j = 0; j < weights.size(); ++j)
+        auto offset = i * num_goods;
+        for (int j = 0; j < num_goods; ++j)
             temp.at(j + offset) = -(agent.goods.at(j).value / MMS.at(i));
         temp.back() = 1;
 
         A.emplace_back(temp);
     }
     // Add constraints such that a good is only allocated at most once
-    for (int i = 0; i < agents.size(); ++i)
+    for (int i = 0; i < num_goods; ++i)
     {
         auto temp = zeros;
-
-        for (int j = 0; j < num_varaibles - 1; j += num_goods)
-            temp.at(j + i) = 1;
-
+        try
+        {
+            for (int j = 0; j < num_agents; ++j)
+            {
+                cout << "j: " << j << endl;
+                temp.at((j * num_goods) + i) = 1;
+                cout << "j: " << j << " worked" << endl;
+            }
+        }
+        catch (exception e)
+        {
+            cout << "Cought execption" << endl;
+            cout << "i: " << i << endl;
+            cout << "Size: " << temp.size() << endl;
+            cout << "index: " << ((3 * num_goods) + i) << endl;
+            exit(123);
+        }
+        cout << "HERE" << endl;
         A.emplace_back(temp);
     }   
-
+    cout << "A is good" << endl;
     vector<double> b {};
     // Add all the budgets to the b vector
     for (auto agent : agents)
@@ -381,8 +395,28 @@ double upper_bound(const vector<agent_t> &agents, const vector<weight_t> &weight
     for (auto agent : agents)
         b.emplace_back(0);
     // Add equally many ones
-    for (auto agent : agents)
+    for (int i = 0; i < num_goods; ++i)
         b.emplace_back(1);
+
+
+    cout << "c:" << endl;
+    for (auto val : c)
+        cout << val << " ";
+    cout << endl;
+
+    cout << "A:" << endl;
+    for (auto row : A)
+    {
+        for (auto val : row)
+            cout << val << " ";
+        cout << endl;
+    }
+    cout << endl;
+
+    cout << "b:" << endl;
+    for (auto val : b)
+        cout << val << " ";
+    cout << endl;
 
     double solution = solve_LP_simplex(c, A, b); 
     
@@ -462,9 +496,20 @@ pair<vector<vector<uint64_t>>, double> BBCMMS(const vector<agent_t> &agents,
     {
         cout << "Finding MMS for agent " << i + 1 << endl;
         agents_MMS.emplace_back(find_MMS(agents.at(i), num_agents, weights));
+        if (agents_MMS.back() == 0)
+        {
+            auto reduced_agents = agents;
+            auto index = agents_MMS.size() - 1;
+            reduced_agents.erase(reduced_agents.begin() + index);
+            return BBCMMS(reduced_agents, weights);
+        }
         cout << "MMS for agent " << i + 1 << " is: " << agents_MMS.back() << endl;
     }
     cout << "MMS found for all agents" << endl;
+
+    // --- HANDLE THE CASE WHERE WE GET A ZERO MMS VALUE ---
+    // We simply remove the first one that got a zero value and solve without it
+
 
     // --- SETTING THE PICKING ORDER ---
     vector<uint64_t> picking_order_goods {};

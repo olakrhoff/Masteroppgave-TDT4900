@@ -24,7 +24,7 @@ build:
 
 execute: build
 		./src/bin/generate_dataset # Generate the dataset
-		./src/bin/BBCMMS -d data/input_data_test.txt -o data/analysis_naive -x g1:15 -k
+		./src/bin/BBCMMS -d data/input_data_test.txt -o data/analysis_naive -x g1:15 -u
 		python3 src/analysis.py # Run the analysis of the generated data
 
 run_bb: clean setup build
