@@ -8,6 +8,7 @@
 #include <float.h>
 #include <getopt.h>
 
+#include "LPSolver.h"
 
 using namespace std;
 
@@ -50,6 +51,7 @@ string data_out_filepath;
 OPTION_X_T x_axis_option {GOODS};
 uint64_t x_axis_lower_bound {}, x_axis_upper_bound {1}; 
 OPTION_Y_T y_axis_option {TIME};
+bool UPPER_BOUND {false};
 
 /**
  * This function handles all the options sent into the program.
@@ -65,14 +67,21 @@ OPTION_Y_T y_axis_option {TIME};
  * -y (y-axis): the data for the y-axis
  *      t: TIME
  *      n: NODES
+ *
+ * --- OPTIMISATIONS ---
+ *
+ * -u (UPPER_BOUND): takes no argument, simply turns on opt. when given
  */
 void handle_options(int argc, char **argv)
 {
     int code {};
-    while ((code = getopt(argc, argv, "d:o:x:y:")) != -1)
+    while ((code = getopt(argc, argv, "d:o:x:y:u")) != -1)
     {
         switch (code)
         {
+            case 'u':
+                UPPER_BOUND = true;
+                break;
             case 'o':
                 data_out_filepath = optarg; 
                 break;
@@ -309,6 +318,77 @@ double min_bundle(const vector<vector<uint64_t>> &allocation,
     return value;
 }
 
+double upper_bound(const vector<agent_t> &agents, const vector<weight_t> &weights,
+                   const vector<double> &MMS, const state_t &current_state)
+{
+    auto num_agents = current_state.get_allocation().goods_for_agents.size();
+    auto num_goods = current_state.get_allocation().weight.size();
+
+    auto num_varaibles = num_agents * num_goods + 1;
+
+    vector<double> c {};
+    for (int i = 0; i < num_varaibles - 1; ++i)
+        c.emplace_back(0);
+    c.emplace_back(1);
+    
+    vector<vector<double>> A {};
+    vector<double> zeros {};
+    for (int i = 0; i < num_varaibles + 1; ++i)
+        zeros.emplace_back(0);
+    
+    // Add all the budget constraints
+    for (int i = 0; i < agents.size(); ++i)
+    {
+        auto agent = agents.at(i);
+        auto temp = zeros;
+
+        auto offset = i * weights.size();
+        for (int j = 0; j < weights.size(); ++j)
+            temp.at(j + offset) = weights.at(j);
+
+
+        A.emplace_back(temp);
+    }
+    // Add the negative normalised value and a one in z 
+    for (int i = 0; i < agents.size(); ++i)
+    {
+        auto agent = agents.at(i);
+        auto temp = zeros;
+
+        auto offset = i * weights.size();
+        for (int j = 0; j < weights.size(); ++j)
+            temp.at(j + offset) = -(agent.goods.at(j).value / MMS.at(i));
+        temp.back() = 1;
+
+        A.emplace_back(temp);
+    }
+    // Add constraints such that a good is only allocated at most once
+    for (int i = 0; i < agents.size(); ++i)
+    {
+        auto temp = zeros;
+
+        for (int j = 0; j < num_varaibles - 1; j += num_goods)
+            temp.at(j + i) = 1;
+
+        A.emplace_back(temp);
+    }   
+
+    vector<double> b {};
+    // Add all the budgets to the b vector
+    for (auto agent : agents)
+        b.emplace_back(agent.capacity);
+    // Add equally many zeros
+    for (auto agent : agents)
+        b.emplace_back(0);
+    // Add equally many ones
+    for (auto agent : agents)
+        b.emplace_back(1);
+
+    double solution = solve_LP_simplex(c, A, b); 
+    
+    return solution;
+}
+
 /**
  * This function is finds the MMS for an agent, given it's value function
  * and the number of agents in the mix
@@ -376,6 +456,7 @@ pair<vector<vector<uint64_t>>, double> BBCMMS(const vector<agent_t> &agents,
 {
     uint64_t num_goods = agents.at(0).goods.size();
     uint64_t num_agents = agents.size();
+
     vector<double> agents_MMS {};
     for (int i = 0; i < num_agents; ++i)
     {
@@ -384,6 +465,8 @@ pair<vector<vector<uint64_t>>, double> BBCMMS(const vector<agent_t> &agents,
         cout << "MMS for agent " << i + 1 << " is: " << agents_MMS.back() << endl;
     }
     cout << "MMS found for all agents" << endl;
+
+    // --- SETTING THE PICKING ORDER ---
     vector<uint64_t> picking_order_goods {};
     for (int i = 0; i < num_goods; ++i)
         picking_order_goods.push_back(i);
@@ -394,6 +477,10 @@ pair<vector<vector<uint64_t>>, double> BBCMMS(const vector<agent_t> &agents,
     mt19937 g(rd());
     shuffle(picking_order_goods.begin(), picking_order_goods.end(), g);
 
+
+    // --- HANDLE PREPROCESSING OF OPTIMISATIONS ---
+
+    // --- BEGIN TRAVERSING THE SOLUTION SPACE ---
     // We want to traverse the search space in a depth-first manner
     // Therefore we create a stack to keep track of where we are in
     // the current state
@@ -408,6 +495,14 @@ pair<vector<vector<uint64_t>>, double> BBCMMS(const vector<agent_t> &agents,
     {
         auto current_state = state_stack.top();
         state_stack.pop();
+
+
+        // --- CHECK UPPER BOUND ---
+        if (UPPER_BOUND)
+            if (upper_bound(agents, weights, agents_MMS, current_state) <= value_of_best_solution)
+                continue; // If the upper bound is less than our best solution thus
+                          // far we infer that it can't become better
+
 
         // If we have allocated all the goods we now need to evaluate the
         // allocation and score it
