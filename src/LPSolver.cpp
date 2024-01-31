@@ -9,13 +9,13 @@ using namespace std;
 
 matrix_t make_matrix(int rows, int cols, vector<vector<double>> values)
 {
-    if (rows != values.size())
+    if (rows != (int)values.size())
     {
         cout << "Row dimentions not compatible" << endl;
         exit(EXIT_FAILURE);
     }
     for (auto row : values)
-        if (cols != row.size())
+        if (cols != (int)row.size())
         {
             cout << "Col dimentions not compatible" << endl;
             exit(EXIT_FAILURE);
@@ -24,32 +24,46 @@ matrix_t make_matrix(int rows, int cols, vector<vector<double>> values)
     return matrix_t();
 }
 
-double solve_LP_simplex(vector<double> c, vector<vector<double>> A, vector<double> b)
+double solve_LP_simplex(vector<double> c, vector<vector<double>> A, vector<double> b, vector<pair<double, double>> bounds)
 {
-    auto num_variables = c.size();
+    int num_variables = c.size();
     lprec *lp;
+    // We will build the problem row by row, there for we begin with zero rows
+    // and 'num_varaibles' cols
     lp = make_lp(0, num_variables); // num_variables is the number of decision variables
     if (lp == NULL) {
         fprintf(stderr, "Unable to create LP model\n");
         return -1;
     }
-    
 
+    set_verbose(lp, NEUTRAL);
+   
     // Set the c vector
-    REAL objective_coefficients[num_variables];
-    for (int i = 0; i < c.size(); ++i)
-        objective_coefficients[i] = c.at(i);
+    REAL objective_coefficients[num_variables + 1];
+    objective_coefficients[0] = 0;
+    for (int i = 0; i < (int)c.size(); ++i)
+        objective_coefficients[i + 1] = c.at(i);
 
-    set_obj_fn(lp, objective_coefficients);
-
-    // Add constrint matrix A
-    for (int i = 0; i < A.size(); ++i)
+    if (!set_obj_fn(lp, objective_coefficients))
     {
-        REAL row[num_variables];
-        for (int j = 0; j < num_variables; ++j)
-            row[j] = A.at(i).at(j);
-        auto rhs = b.at(i);
-        if (!add_constraint(lp, row, LE, rhs))
+        cout << "Failed to set objective function" << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    // We need to transform the A matrix into dynamic memory
+    REAL rows[A.size() * (A.at(0).size() + 1)];
+    for (int i = 0; i < (int)A.size(); ++i)
+    {
+        rows[0] = 0;
+        for (int j = 0; j < (int)A.at(i).size(); ++j)
+            rows[i * (int)A.size() + j + 1] = A.at(i).at(j);
+        
+    }
+    // Add constrint matrix A
+    for (int i = 0; i < (int)A.size(); ++i)
+    {
+        REAL rhs = b.at(i);
+        if (!add_constraint(lp, &rows[i * (int)A.size()], LE, rhs))
         {
             cout << "Failed to add constraint" << endl;
             exit(EXIT_FAILURE);
@@ -57,11 +71,18 @@ double solve_LP_simplex(vector<double> c, vector<vector<double>> A, vector<doubl
     }
 
     // Set bounds for the variables
-    for (int i = 0; i < num_variables; ++i)
-        set_bounds(lp, i, 0, 1);
+    int index = 1;
+    for (auto [lower, upper] : bounds)
+        set_bounds(lp, index++, lower, upper);
     
+    // We need to explicitly set the problem to a maximisation problem
+    set_maxim(lp);
+
     int result = solve(lp);
 
+    // Prints the LP in a nice format
+    //print_lp(lp);
+    
     switch (result)
     {
         case OPTIMAL:
@@ -73,9 +94,25 @@ double solve_LP_simplex(vector<double> c, vector<vector<double>> A, vector<doubl
 
     //double *solution = (double*)malloc(num_variables * sizeof(*solution));
     //get_variables(lp, solution);
-    double objective_value = get_objective(lp);
+    double solution = get_objective(lp);
 
     delete_lp(lp);
 
-    return objective_value;
+    return solution;
+}
+
+double get_pos_inf(int num_variables)
+{
+    lprec *lp;
+    lp = make_lp(0, num_variables); // num_variables is the number of decision variables
+    if (lp == NULL) {
+        fprintf(stderr, "Unable to create LP model\n");
+        return -1;
+    }
+
+    double inf = get_infinite(lp);
+
+    delete_lp(lp);
+
+    return inf;
 }
