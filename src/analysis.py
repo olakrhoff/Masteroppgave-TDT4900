@@ -1,4 +1,5 @@
 import os
+import sys
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -122,6 +123,46 @@ def analyse(file_path):
     plt.close()
     plt.clf()
 
+def add_data_to_plot(file_path, label):
+    x_vals = [] # X-axis
+    y_vals = [] # Y-axis
+    nodes = []
+    a = [] # No. of agents for the lines
+    with open(file_path, 'r') as file:
+        for line in file:
+            seg = line.split(': ')
+            agents, goods, _, num_nodes = seg[1].split(', ')
+            measurments = [float(x) for x in seg[2].split(', ')]
+            
+            for m in measurments: 
+                x_vals.append(int(goods))
+                y_vals.append(m)
+                nodes.append(num_nodes)
+                a.append(agents)
+
+    plt.scatter(x_vals, [val / 1000000 for val in y_vals], label=label + ', No. agents: ' + a[0])
+
+    model_x, model_y, condition_number, RMSE = fit_data_to_model(x_vals, y_vals, "EXP")
+
+    plt.plot(model_x, [val / 1000000 for val in model_y],
+             label='Exponential model, cond: ' +
+             "{:.2e}".format(condition_number) + 
+             ", RMSE: " + "{:.2e}".format(RMSE))
+
+def analyse_multiple(data_path, filename, args):
+    
+    for file, label in args:
+        add_data_to_plot(file, label)
+    
+    plt.xlabel('No. goods')
+    plt.ylabel('Time (s)')
+    plt.title(filename)
+    plt.legend()
+    plt.savefig(save_path + filename + ".png")
+
+    plt.close()
+    plt.clf()
+
 def start_analysis():
     print("Starting analysis...")
     files = get_analysis_files(data_folder_path)
@@ -131,5 +172,25 @@ def start_analysis():
     
     print("Analysis done.")
 
+def compare_analysis(args, filename):
+    print("Starting comparing analysis...")
+ 
+    analyse_multiple(data_folder_path + "/", filename, args)
+
+    print("Comparing analysis done.")
+
 if __name__ == "__main__":
-    start_analysis()
+    # If we get arguments, then we want to plot the given datasets together
+    if len(sys.argv) > 1:
+        args = []
+        if len(sys.argv) % 2 != 0:
+            print("Incorrect numbers of arbuments passed, expected an odd number")
+            exit(1)
+        for i in range(1, len(sys.argv) - 1, 2):
+            args.append([sys.argv[i], sys.argv[i + 1]])
+        filename = sys.argv[-1]
+        compare_analysis(args, filename)
+    # If we have no arguments we just run the analysis for all the data we
+    # can find indiviually
+    else:
+        start_analysis()
