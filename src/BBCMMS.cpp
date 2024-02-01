@@ -23,7 +23,7 @@ vector<string> split(const string &line, const string &delimiter)
     vector<string> result {};
 
     string temp = line;
-    while (temp.find(delimiter) != -1)
+    while ((int)temp.find(delimiter) != -1)
     {
         result.emplace_back(temp.substr(0, temp.find(delimiter)));
         temp = temp.substr(temp.find(delimiter) + delimiter.length());
@@ -159,6 +159,10 @@ void write_data_to_file(const vector<uint64_t> &times)
             data_out_filepath += "_NODES";
             break;
     }
+
+    if (UPPER_BOUND)
+        data_out_filepath += "_UPPER_BOUND";
+
     data_out_filepath += ".txt";
 
     file.open(data_out_filepath);
@@ -171,7 +175,7 @@ void write_data_to_file(const vector<uint64_t> &times)
 
     //Write the timestamp for each of the instances
     //TODO: extend such that we run multiple instances for each case
-    for (int i = 0; i < times.size(); ++i)
+    for (int i = 0; i < (int)times.size(); ++i)
     {
         // Write all optimisations that is turned on
         //TODO
@@ -186,9 +190,9 @@ void write_data_to_file(const vector<uint64_t> &times)
 
 typedef struct good
 {
-    uint64_t value {};
+    double value {};
 
-    good(uint64_t value) : value(value)
+    good(double value) : value(value)
     {}
 } good_t;
 
@@ -232,7 +236,7 @@ typedef struct allocation
 
     allocation(uint64_t num_agents)
     {
-        for (int i = 0; i < num_agents; ++i)
+        for (uint64_t i = 0; i < num_agents; ++i)
         {
             goods_for_agents.emplace_back(vector<uint64_t>());
             weight.emplace_back(0);
@@ -291,7 +295,7 @@ double alpha_MMS_of_allocation(const vector<vector<uint64_t>> &allocation,
         const vector<double> &agent_MMS)
 {
     double value = DBL_MAX;
-    for (int i = 0; i < allocation.size(); ++i)
+    for (int i = 0; i < (int)allocation.size(); ++i)
     {
         double temp {};
         for (auto good : allocation.at(i))
@@ -307,7 +311,7 @@ double min_bundle(const vector<vector<uint64_t>> &allocation,
         const vector<good_t> &valuation)
 {
     double value = DBL_MAX;
-    for (int i = 0; i < allocation.size(); ++i)
+    for (int i = 0; i < (int)allocation.size(); ++i)
     {
         double temp {};
         for (auto good : allocation.at(i))
@@ -318,111 +322,179 @@ double min_bundle(const vector<vector<uint64_t>> &allocation,
     return value;
 }
 
-double upper_bound(const vector<agent_t> &agents, const vector<weight_t> &weights,
-                   const vector<double> &MMS, const state_t &current_state)
-{
-    auto num_agents = current_state.get_allocation().goods_for_agents.size();
-    auto num_goods = weights.size();
 
+double upper_bound(vector<agent_t> agents, vector<weight_t> weights,
+                   const state_t &current_state)
+{
+    int num_agents = (int)agents.size();
+    int num_goods = (int)weights.size();
+    
+    // --- REDUCE THE INSTACE BASED ON CURRENT STATE ---
+    vector<int> goods_indices {};
+
+    weight_t occupied_space_for_agents[num_agents];
+    double value_for_agents[num_agents];
+    for (int i = 0; i < num_agents; ++i)
+    {
+        occupied_space_for_agents[i] = 0; // Ensure that it starts at zero
+        value_for_agents[i] = 0;          // Ensure that it starts at zero
+        for (int j = 0; j < (int)current_state.get_allocation().goods_for_agents.at(i).size(); ++j)
+        {
+            int good_idx = current_state.get_allocation().goods_for_agents.at(i).at(j);
+            // Add the good to the list of allocated goods
+            goods_indices.emplace_back(good_idx);
+            // We add the weight of the good allocated to agent 'i' in the
+            // occupied space for the given agent
+            occupied_space_for_agents[i] += weights.at(good_idx);
+
+            // We add the value the allocated good has for agent 'i'
+            value_for_agents[i] += agents.at(i).goods.at(good_idx).value;
+        }
+    }
+    
+    // Now we will do the actual reduction for the LP
+    // Sort them in decending order
+    sort(goods_indices.begin(), goods_indices.end(), [](int a, int b){ return a > b; });
+    // Remove them from the agents and weights
+    // Since we do it in decrementing order the index of the good should always
+    // be a valid index into the vectors
+    for (auto good_idx : goods_indices)
+    {
+        weights.erase(weights.begin() + good_idx);
+        num_goods--; // We must decrement the number of goods when we remove one
+        // We remove the good from each agents valuation
+        for (int i = 0; i < num_agents; ++i)
+            agents.at(i).goods.erase(agents.at(i).goods.begin() + good_idx);
+    }
+
+    
     auto num_varaibles = num_agents * num_goods + 1;
 
+    // --- SOLVE THE REDUCED INSTANCE OF THE LP ---
     vector<double> c {};
-    for (int i = 0; i < num_varaibles - 1; ++i)
+    for (int i = 0; i < (int)num_varaibles - 1; ++i)
         c.emplace_back(0);
     c.emplace_back(1);
 
     vector<vector<double>> A {};
     vector<double> zeros {};
-    for (int i = 0; i < num_varaibles; ++i)
+    for (int i = 0; i < (int)num_varaibles; ++i)
         zeros.emplace_back(0);
     
     // Add all the budget constraints
-    for (int i = 0; i < agents.size(); ++i)
+    for (int i = 0; i < (int)num_agents; ++i)
     {
-        auto agent = agents.at(i);
         auto temp = zeros;
 
         auto offset = i * num_goods;
-        for (int j = 0; j < num_goods; ++j)
+        for (int j = 0; j < (int)num_goods; ++j)
             temp.at(j + offset) = weights.at(j);
-
 
         A.emplace_back(temp);
     }
     // Add the negative normalised value and a one in z 
-    for (int i = 0; i < agents.size(); ++i)
+    for (int i = 0; i < (int)num_agents; ++i)
     {
-        auto agent = agents.at(i);
         auto temp = zeros;
 
         auto offset = i * num_goods;
-        for (int j = 0; j < num_goods; ++j)
-            temp.at(j + offset) = -(agent.goods.at(j).value / MMS.at(i));
+        for (int j = 0; j < (int)num_goods; ++j)
+            temp.at(j + offset) = -agents.at(i).goods.at(j).value;
         temp.back() = 1;
 
         A.emplace_back(temp);
     }
     // Add constraints such that a good is only allocated at most once
-    for (int i = 0; i < num_goods; ++i)
+    for (int i = 0; i < (int)num_goods; ++i)
     {
         auto temp = zeros;
-        try
-        {
-            for (int j = 0; j < num_agents; ++j)
-            {
-                cout << "j: " << j << endl;
-                temp.at((j * num_goods) + i) = 1;
-                cout << "j: " << j << " worked" << endl;
-            }
-        }
-        catch (exception e)
-        {
-            cout << "Cought execption" << endl;
-            cout << "i: " << i << endl;
-            cout << "Size: " << temp.size() << endl;
-            cout << "index: " << ((3 * num_goods) + i) << endl;
-            exit(123);
-        }
-        cout << "HERE" << endl;
+        for (int j = 0; j < (int)num_agents; ++j)
+            temp.at((j * num_goods) + i) = 1;
+
         A.emplace_back(temp);
     }   
-    cout << "A is good" << endl;
     vector<double> b {};
     // Add all the budgets to the b vector
-    for (auto agent : agents)
-        b.emplace_back(agent.capacity);
+    for (int i = 0; i < (int)num_agents; ++i)
+    {
+        // We get the capacity the agent has left, which is it's total capacity
+        // minus the occupied space of the goods it already has been allocated
+        auto capacity_left = agents.at(i).capacity - occupied_space_for_agents[i];
+        b.emplace_back(capacity_left);
+    }
     // Add equally many zeros
-    for (auto agent : agents)
-        b.emplace_back(0);
+    for (int i = 0; i < (int)num_agents; ++i)
+    {
+        // Here we add the value that the agent has gotten thus far from the
+        // current allocation, zero if they have not gotten any goods yet
+        b.emplace_back(value_for_agents[i]);
+    }
     // Add equally many ones
-    for (int i = 0; i < num_goods; ++i)
+    for (int i = 0; i < (int)num_goods; ++i)
         b.emplace_back(1);
 
 
-    cout << "c:" << endl;
-    for (auto val : c)
-        cout << val << " ";
-    cout << endl;
-
-    cout << "A:" << endl;
-    for (auto row : A)
+    // Make corrections based on the current state.
+    // By this I mean that we need to handle the goods already allocated
+    /*
+    for (int i = 0; i < (int)num_agents; ++i)
     {
-        for (auto val : row)
-            cout << val << " ";
-        cout << endl;
+        if (current_state.get_allocation().goods_for_agents.at(i).empty())
+        {
+            cout << "EMPTY" << endl;
+        }
+        //for (auto good_idx : current_state.get_allocation().goods_for_agents.at(i))
+        for (int j = 0; j < current_state.get_allocation().goods_for_agents.at(i).size(); ++j)
+        {
+            int good_idx = current_state.get_allocation().goods_for_agents.at(i).at(j);
+            cout << "HERE" << endl;
+            // Update capacity
+            b.at(i) -= weights.at(good_idx);
+            // Update value already gotten
+            b.at(num_agents + i) += agents.at(i).goods.at(good_idx).value;
+            // Update the allocation to force the good to the agent
+            int agent_index = num_goods * i + good_idx;
+            auto new_row = zeros;
+            new_row.at(agent_index) = 1;
+            A.at(num_agents * 2 + good_idx) = new_row;
+            // Adding the inverse row as well to ensure that the bound is tight
+            auto inverse_row = zeros;
+            inverse_row.at(agent_index) = -1;
+            A.emplace_back(inverse_row);
+            b.emplace_back(-1);
+        }
     }
-    cout << endl;
+    */
 
-    cout << "b:" << endl;
-    for (auto val : b)
-        cout << val << " ";
-    cout << endl;
+    vector<pair<double, double>> bounds {};
+    for (int i = 0; i < (int)num_varaibles - 1; ++i)
+        bounds.emplace_back(0, 1);
+    bounds.emplace_back(0, get_pos_inf(num_varaibles));
 
-    double solution = solve_LP_simplex(c, A, b); 
+    double solution = solve_LP_simplex(c, A, b, bounds); 
     
     return solution;
 }
 
+double upper_bound_with_MMS(vector<agent_t> agents, const vector<weight_t> &weights,
+                            vector<double> MMS, const state_t &current_state)
+{
+    for (int i = 0; i < (int)agents.size(); ++i)
+        for (int j = 0; j < (int)agents.at(i).goods.size(); ++j)
+            agents.at(i).goods.at(j).value /= MMS.at(i);
+
+    return upper_bound(agents, weights, current_state);
+}
+
+double upper_bound_find_MMS(const agent_t &agent, const vector<weight_t> &weights,
+                            const state_t &current_state)
+{
+    vector<agent_t> agents {};
+    for (int i = 0; i < (int)current_state.get_allocation().goods_for_agents.size(); ++i)
+        agents.emplace_back(agent);
+
+    return upper_bound(agents, weights, current_state);
+}
 /**
  * This function is finds the MMS for an agent, given it's value function
  * and the number of agents in the mix
@@ -442,6 +514,13 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
         auto current_state = state_stack.top();
         state_stack.pop();
 
+        double val {};
+        // --- CHECK UPPER BOUND ---
+        if (UPPER_BOUND)
+            if ((val = upper_bound_find_MMS(agent, weights, current_state)) <= value_of_best_solution)
+                continue; // If the upper bound is less than our best solution thus
+                          // far we infer that it can't become better
+
         // If we have allocated all the goods we now need to evaluate the
         // allocation and score it
         if (current_state.get_goods_allocated() == num_goods)
@@ -458,7 +537,7 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
 
         // Loop over for each agent and add to the stack the state in which
         // the given agent gets the new good
-        for (int i = 0; i < num_agents; ++i)
+        for (int i = 0; i < (int)num_agents; ++i)
         {
             auto new_state = current_state;
             uint64_t new_good = current_state.get_goods_allocated();
@@ -488,11 +567,12 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
 pair<vector<vector<uint64_t>>, double> BBCMMS(const vector<agent_t> &agents, 
                                               const vector<weight_t> &weights)
 {
+    double nodes_visited {};
     uint64_t num_goods = agents.at(0).goods.size();
     uint64_t num_agents = agents.size();
 
     vector<double> agents_MMS {};
-    for (int i = 0; i < num_agents; ++i)
+    for (int i = 0; i < (int)num_agents; ++i)
     {
         cout << "Finding MMS for agent " << i + 1 << endl;
         agents_MMS.emplace_back(find_MMS(agents.at(i), num_agents, weights));
@@ -513,7 +593,7 @@ pair<vector<vector<uint64_t>>, double> BBCMMS(const vector<agent_t> &agents,
 
     // --- SETTING THE PICKING ORDER ---
     vector<uint64_t> picking_order_goods {};
-    for (int i = 0; i < num_goods; ++i)
+    for (int i = 0; i < (int)num_goods; ++i)
         picking_order_goods.push_back(i);
 
     // Since we don't have any picking order optimisation set yet we do a
@@ -538,13 +618,15 @@ pair<vector<vector<uint64_t>>, double> BBCMMS(const vector<agent_t> &agents,
     double value_of_best_solution {};
     while (!state_stack.empty())
     {
+        nodes_visited++;
+
         auto current_state = state_stack.top();
         state_stack.pop();
 
 
         // --- CHECK UPPER BOUND ---
         if (UPPER_BOUND)
-            if (upper_bound(agents, weights, agents_MMS, current_state) <= value_of_best_solution)
+            if (upper_bound_with_MMS(agents, weights, agents_MMS, current_state) <= value_of_best_solution)
                 continue; // If the upper bound is less than our best solution thus
                           // far we infer that it can't become better
 
@@ -565,7 +647,7 @@ pair<vector<vector<uint64_t>>, double> BBCMMS(const vector<agent_t> &agents,
 
         // Loop over for each agent and add to the stack the state in which
         // the given agent gets the new good
-        for (int i = 0; i < agents.size(); ++i)
+        for (int i = 0; i < (int)agents.size(); ++i)
         {
             auto new_state = current_state;
             uint64_t new_good_index = picking_order_goods.at(current_state.get_goods_allocated());
@@ -583,6 +665,12 @@ pair<vector<vector<uint64_t>>, double> BBCMMS(const vector<agent_t> &agents,
         new_state.allocate_to_charity(new_good_index);
         state_stack.push(new_state);
     }
+
+    double n = (double)num_agents + 1;
+    double m = (double)num_goods;
+    double total_num_nodes = (1 - powf(n, m + 1)) / (1 - n);
+
+    cout << "Percent of nodes visited: " << nodes_visited / total_num_nodes << endl;
 
     return {best_solution_yet.get_allocation().goods_for_agents, value_of_best_solution};
 }
@@ -639,7 +727,7 @@ int main(int argc, char **argv)
         x_axis_upper_bound =  agents.at(0).goods.size(); 
         cout << x_axis_upper_bound << endl;
     }
-    for (int run = x_axis_lower_bound; run <= x_axis_upper_bound; ++run)
+    for (int run = x_axis_lower_bound; run <= (int)x_axis_upper_bound; ++run)
     {
         vector<agent_t> run_agents = agents;
         for (auto &a : run_agents)
@@ -653,7 +741,7 @@ int main(int argc, char **argv)
         auto end_time = chrono::high_resolution_clock::now();
         auto duration = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
 
-        for (int i = 0; i < allocation.size(); ++i)
+        for (int i = 0; i < (int)allocation.size(); ++i)
         {
             cout << "Agent " << i + 1 << " got goods: ";
             for (auto good : allocation.at(i))
