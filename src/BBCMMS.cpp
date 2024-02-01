@@ -52,7 +52,7 @@ OPTION_X_T x_axis_option {GOODS};
 uint64_t x_axis_lower_bound {}, x_axis_upper_bound {1}; 
 OPTION_Y_T y_axis_option {TIME};
 bool UPPER_BOUND {false};
-
+#define UPPER_BOUND_MIN_LIMIT 7
 /**
  * This function handles all the options sent into the program.
  * It sets flags for optimisations that are enabled and what type of output
@@ -495,6 +495,7 @@ double upper_bound_find_MMS(const agent_t &agent, const vector<weight_t> &weight
 
     return upper_bound(agents, weights, current_state);
 }
+
 /**
  * This function is finds the MMS for an agent, given it's value function
  * and the number of agents in the mix
@@ -503,12 +504,31 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
 {
     uint64_t num_goods = agent.goods.size();
 
+
+    // --- PREPROCESS THE BEST SOLUTION ---
+    double value_of_best_solution {};
+     
+    vector<pair<good_t, weight_t>> goods {};
+    for (int i = 0; i < weights.size(); ++i)
+        goods.emplace_back(agent.goods.at(i), weights.at(i));
+
+    sort(goods.begin(), goods.end(), [](auto a, auto b){ return a.first.value > b.first.value; });
+    auto capacity {agent.capacity};
+    for (int i = num_agents - 1; i < goods.size(); i += num_agents)
+    {
+        auto good {goods.at(i)};
+        if (capacity < good.second)
+            continue;
+        capacity -= good.second;
+        value_of_best_solution += good.first.value;
+    }
+
+
     stack<state_t> state_stack {};
     state_t start_state(num_agents);
     state_stack.push(start_state);
 
     state_t best_solution_yet = start_state;
-    double value_of_best_solution {};
     while (!state_stack.empty())
     {
         auto current_state = state_stack.top();
@@ -516,7 +536,7 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
 
         double val {};
         // --- CHECK UPPER BOUND ---
-        if (UPPER_BOUND)
+        if (UPPER_BOUND && num_goods - current_state.get_goods_allocated() >= UPPER_BOUND_MIN_LIMIT)
             if ((val = upper_bound_find_MMS(agent, weights, current_state)) <= value_of_best_solution)
                 continue; // If the upper bound is less than our best solution thus
                           // far we infer that it can't become better
@@ -615,7 +635,8 @@ pair<vector<vector<uint64_t>>, double> BBCMMS(const vector<agent_t> &agents,
     state_stack.push(start_state);
 
     state_t best_solution_yet = start_state;
-    double value_of_best_solution {};
+    // It is proven that the BSIMMS has at least a 1/3-MMS solution 
+    double value_of_best_solution {0.333};
     while (!state_stack.empty())
     {
         nodes_visited++;
@@ -625,7 +646,7 @@ pair<vector<vector<uint64_t>>, double> BBCMMS(const vector<agent_t> &agents,
 
 
         // --- CHECK UPPER BOUND ---
-        if (UPPER_BOUND)
+        if (UPPER_BOUND && num_goods - current_state.get_goods_allocated() >= UPPER_BOUND_MIN_LIMIT)
             if (upper_bound_with_MMS(agents, weights, agents_MMS, current_state) <= value_of_best_solution)
                 continue; // If the upper bound is less than our best solution thus
                           // far we infer that it can't become better

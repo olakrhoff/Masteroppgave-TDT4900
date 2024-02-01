@@ -16,7 +16,7 @@ setup:
 
 clean:  
 		rm -rf $(CURDIR)/src/bin/*
-		rm -rf $(CURDIR)/plots/*
+		#rm -rf $(CURDIR)/plots/*
 
 build:
 		$(CC) $(CFLAGS) $(CURDIR)/src/generate_dataset.cpp -o $(CURDIR)/src/bin/generate_dataset
@@ -25,7 +25,7 @@ build:
 
 execute: build
 		./src/bin/generate_dataset # Generate the dataset
-		./src/bin/BBCMMS -d data/input_data_test.txt -o data/analysis -x g1:9 -u
+		./src/bin/BBCMMS -d data/input_data_test.txt -o data/analysis -x g1:11 -u
 		#./src/bin/BBCMMS -d data/negative_proof_39_40.txt -o data/analysis -x g9:9 -u
 		python3 src/analysis.py # Run the analysis of the generated data
 
