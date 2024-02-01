@@ -50,20 +50,15 @@ double solve_LP_simplex(vector<double> c, vector<vector<double>> A, vector<doubl
         exit(EXIT_FAILURE);
     }
 
-    // We need to transform the A matrix into dynamic memory
-    REAL rows[A.size() * (A.at(0).size() + 1)];
-    for (int i = 0; i < (int)A.size(); ++i)
-    {
-        rows[0] = 0;
-        for (int j = 0; j < (int)A.at(i).size(); ++j)
-            rows[i * (int)A.size() + j + 1] = A.at(i).at(j);
-        
-    }
     // Add constrint matrix A
     for (int i = 0; i < (int)A.size(); ++i)
     {
+        REAL row[num_variables + 1];
+        row[0] = 0;
+        for (int j = 0; j < num_variables; ++j)
+            row[j + 1] = A.at(i).at(j);
         REAL rhs = b.at(i);
-        if (!add_constraint(lp, &rows[i * (int)A.size()], LE, rhs))
+        if (!add_constraint(lp, row, LE, rhs))
         {
             cout << "Failed to add constraint" << endl;
             exit(EXIT_FAILURE);
