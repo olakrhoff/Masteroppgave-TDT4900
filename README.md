@@ -1,6 +1,6 @@
 # Masteroppgave-TDT4900
 
-Run ```make <target>``` to execute the following steps. Running just ```make``` will default to ```make setup```
+Run ```make <target>``` to execute the following steps. Running just ```make``` will default to ```make run```
 
 ### Targets
 
