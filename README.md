@@ -10,3 +10,6 @@ Run ```make <target>``` to execute the following steps. Running just ```make``` 
 * execute: Builds the project, (WILL) generates the dataset and runs the compiled executable. Then runs a Python script (```analysis.py```) for analyzing the generated data, which generates the plots in ```plots```.
 * teardown: Removes any generated data files in the data directory.
 * run: Cleans the project, sets it up, executes it, and performs a teardown to remove any generated data files.
+
+## Dependencies
+* LP Solver: ```brew install lp_solve```
