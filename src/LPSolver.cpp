@@ -24,16 +24,17 @@ matrix_t make_matrix(int rows, int cols, vector<vector<double>> values)
     return matrix_t();
 }
 
-double solve_LP_simplex(vector<double> c, vector<vector<double>> A, vector<double> b, vector<pair<double, double>> bounds)
+pair<double, vector<double>> solve_LP_simplex(vector<double> c, vector<vector<double>> A, vector<double> b, vector<pair<double, double>> bounds)
 {
     int num_variables = c.size();
     lprec *lp;
     // We will build the problem row by row, there for we begin with zero rows
     // and 'num_varaibles' cols
     lp = make_lp(0, num_variables); // num_variables is the number of decision variables
-    if (lp == NULL) {
-        fprintf(stderr, "Unable to create LP model\n");
-        return -1;
+    if (lp == nullptr)
+    {
+        cout << "Could not create LP model" << endl;
+        exit(EXIT_FAILURE);
     }
 
     set_verbose(lp, NEUTRAL);
@@ -87,13 +88,24 @@ double solve_LP_simplex(vector<double> c, vector<vector<double>> A, vector<doubl
             exit(EXIT_FAILURE);
     }
 
-    //double *solution = (double*)malloc(num_variables * sizeof(*solution));
-    //get_variables(lp, solution);
     double solution = get_objective(lp);
+
+    REAL variables[num_variables];
+
+    if (!get_variables(lp, variables))
+    {
+        cout << "Could not get varaibles from solution" << endl;
+        exit(EXIT_FAILURE);
+    }
+
 
     delete_lp(lp);
 
-    return solution;
+    vector<double> vars {};
+    for (int i = 0; i < num_variables; ++i)
+        vars.emplace_back(variables[i]);
+
+    return {solution, vars};
 }
 
 double get_pos_inf(int num_variables)

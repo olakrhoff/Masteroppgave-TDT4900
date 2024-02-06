@@ -26,6 +26,6 @@ typedef struct matrix
 
 matrix_t make_matrix(int rows, int cols, vector<vector<double>> values);
 
-double solve_LP_simplex(vector<double> c, vector<vector<double>> A, vector<double> b, vector<pair<double, double>> bounds);
+pair<double, vector<double>> solve_LP_simplex(vector<double> c, vector<vector<double>> A, vector<double> b, vector<pair<double, double>> bounds);
 
 double get_pos_inf(int num_varaiables);

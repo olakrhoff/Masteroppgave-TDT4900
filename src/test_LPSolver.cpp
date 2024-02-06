@@ -13,9 +13,8 @@ int main()
     vector<double> b {200, 300, 400};
     vector<pair<double, double>> bounds {{0, get_pos_inf(2)}, {0, get_pos_inf(2)}};
 
-    double res = solve_LP_simplex(c, A, b, bounds);
-    cout << "The result is: " << res << endl;
-    if (res == 1900)
+    pair<double, vector<double>> res = solve_LP_simplex(c, A, b, bounds);
+    if (res.first == 1900)
         cout << "Test succeseded" << endl;
     else
         cout << "Test failed" << endl;
