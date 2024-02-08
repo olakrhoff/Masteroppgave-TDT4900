@@ -7,23 +7,6 @@
 
 using namespace std;
 
-matrix_t make_matrix(int rows, int cols, vector<vector<double>> values)
-{
-    if (rows != (int)values.size())
-    {
-        cout << "Row dimentions not compatible" << endl;
-        exit(EXIT_FAILURE);
-    }
-    for (auto row : values)
-        if (cols != (int)row.size())
-        {
-            cout << "Col dimentions not compatible" << endl;
-            exit(EXIT_FAILURE);
-        }
-
-    return matrix_t();
-}
-
 pair<double, vector<double>> solve_LP_simplex(vector<double> c, vector<vector<double>> A, vector<double> b, vector<pair<double, double>> bounds)
 {
     int num_variables = c.size();
