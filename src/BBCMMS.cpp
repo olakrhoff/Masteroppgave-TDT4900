@@ -485,14 +485,14 @@ tuple<double, state_t, bool> upper_bound(vector<agent_t> agents, vector<weight_t
     {
         // The entire premis of the lower bound is to make the upper bound a
         // feasible solution which will then work as our lower bound
-        for (int j = 0; j < num_variables / num_agents; ++j)
+        for (int j = 0; j < num_goods; ++j)
         {
             int agent_idx {};
             double value {};
             // First identifiy the agent whose gonna get the good
             for (int i = 0; i < num_agents; ++i)
             {
-                auto var = variables.at(i * (num_variables / num_agents) + j);
+                auto var = variables.at(i * num_goods + j);
                 if (var > value)
                 {
                     agent_idx = i;
@@ -501,7 +501,7 @@ tuple<double, state_t, bool> upper_bound(vector<agent_t> agents, vector<weight_t
             }
             for (int i = 0; i < num_agents; ++i)
             {
-                auto &var = variables.at(i * (num_variables / num_agents) + j);
+                auto &var = variables.at(i * num_goods + j);
                 if (i == agent_idx)
                     var = 1;
                 else
@@ -512,6 +512,7 @@ tuple<double, state_t, bool> upper_bound(vector<agent_t> agents, vector<weight_t
         // Now that we have rounded the LP to an integer answer we must check
         // if it is feasible, if not, we need to reduce the allocations until
         // it is. 
+        
         
         //double lower_bound = min_bundle(possible_state.get_allocation().goods_for_agents, agents);
         // TODO: Fix this after cleanup
