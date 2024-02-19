@@ -24,17 +24,17 @@ build:
 	$(CC) $(CFLAGS) $(CURDIR)/src/test_LPSolver.cpp $(CURDIR)/src/LPSolver.cpp -o $(CURDIR)/src/bin/test_LPSolver $(LDFLAGS) $(INCLUDE_DIRS)
 
 execute: build
-	./src/bin/generate_dataset # Generate the dataset
-	./src/bin/BBCMMS -d data/input_data_test.txt -o data/analysis -x g1:11 -u
-	#./src/bin/BBCMMS -d data/negative_proof_39_40.txt -o data/analysis -x g9:9 -u
-	python3 src/analysis.py # Run the analysis of the generated data
+		./src/bin/generate_dataset # Generate the dataset
+		./src/bin/BBCMMS -d data/input_data_test.txt -o data/analysis -x g1:12 -u
+		python3 src/analysis.py # Run the analysis of the generated data
 
 run_bb: clean setup build
-	./src/bin/BBCMMS -d data/input_data_test.txt -o data/analysis_naive -x g1:15 -u
-	./src/bin/BBCMMS -d data/input_data_test.txt -o data/analysis_naive -x g1:15 -u -b
+	./src/bin/BBCMMS -d data/input_data_test.txt -o data/analysis_naive -x g1:12 -u
+	./src/bin/BBCMMS -d data/input_data_test.txt -o data/analysis_naive -x g1:12 -u -b
 
 analysis:
 	python3 src/analysis.py
 
 test: setup build
 	./src/bin/test_LPSolver
+	./src/bin/BBCMMS -d data/negative_proof_39_40.txt -o data/analysis -x g9:9 -u -b
