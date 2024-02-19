@@ -108,7 +108,6 @@ def analyse(file_path):
     plt.scatter(x_vals, [val / 1000000 for val in y_vals], label='No. agents: ' + a[0])
 
     model_x, model_y, condition_number, RMSE = fit_data_to_model(x_vals, y_vals, "EXP")
-
     plt.plot(model_x, [val / 1000000 for val in model_y],
              label='Exponential model, cond: ' +
              "{:.2e}".format(condition_number) + 
@@ -156,6 +155,7 @@ def analyse_multiple(data_path, filename, args):
     
     plt.xlabel('No. goods')
     plt.ylabel('Time (s)')
+    #plt.yscale('log')
     plt.title(filename)
     plt.legend()
     plt.savefig(save_path + filename + ".png")
