@@ -13,15 +13,16 @@ clf = clf.fit(X, y)
 tree.plot_tree(clf)
 #plt.show()
 
-dot_data = tree.export_graphviz(clf, out_file=None) 
-graph = graphviz.Source(dot_data) 
-graph.render("iris")
 
+print(iris.feature_names)
+print(iris.target_names)
+print("EXPORT")
 dot_data = tree.export_graphviz(clf, out_file=None, 
                      feature_names=iris.feature_names,  
                      class_names=iris.target_names,  
                      filled=True, rounded=True,  
                      special_characters=True)  
+print("EXPORTED")
 graph = graphviz.Source(dot_data)  
-graph 
+graph.render("iris")
 
