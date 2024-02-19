@@ -14,3 +14,4 @@ Run ```make <target>``` to execute the following steps. Running just ```make``` 
 
 ## Dependencies
 * LP Solver: ```brew install lp_solve```
+* Scikit-learn: ```pip3 install scikit-learn```
