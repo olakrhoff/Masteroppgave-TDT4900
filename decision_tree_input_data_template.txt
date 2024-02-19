@@ -1,0 +1,8 @@
+ATTRIBUTE_1, ATTR_2, ... , ATTR_N
+TARGET_1, TARGET_2, ... , TARGET_N
+DATA_1.1, DATA_1.2, ..., DATA_1.N, RES_1
+DATA_2.1, DATA_2.2, ..., DATA_2.N, RES_2
+.
+.
+.
+DATA_M.1, DATA_M.2, ..., DATA_M.N, RES_M
