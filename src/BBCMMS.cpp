@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
@@ -46,12 +47,23 @@ typedef enum OPTION_Y
     NODES
 } OPTION_Y_T;
 
+typedef enum PICKING_ORDERS
+{
+    RANDOM,
+    NASH,
+    MAX_VALUE,
+    MAX_WEIGHT,
+    MAX_PROFIT,
+} PICKING_ORDERS_T;
+
 string data_in_filepath;
 string data_out_filepath;
 OPTION_X_T x_axis_option {GOODS};
 uint64_t x_axis_lower_bound {}, x_axis_upper_bound {1}; 
 OPTION_Y_T y_axis_option {TIME};
 int UPPER_BOUND_MIN_LIMIT {7};
+PICKING_ORDERS_T PICKING_ORDER {RANDOM};
+bool REVERSE_PICKING_ORDER {false};
 
 typedef struct OPTIONS
 {
@@ -81,14 +93,48 @@ OPTIONS_T OPTIONS {};
  * -b (BOUND_AND_BOUND): takes no argument, simply turns on opt. when given
  *                       this will turn on the UPPER_BOUND as well, since it
  *                       is required
+ * -p (Picking Order): Selects a picking order, if not passed, RANDOM ís the
+ *                     default choice.
+ *                     r:  RANDOM
+ *                     n:  NASH
+ *                     v:  MAX_VALUE
+ *                     w:  MAX_WEIGHT
+ *                     p:  MAX_PROFIT
+ * -r (Reverse picking order): No argument, reverses the picking order
  */
 void handle_options(int argc, char **argv)
 {
     int code {};
-    while ((code = getopt(argc, argv, "d:o:x:y:ub")) != -1)
+    while ((code = getopt(argc, argv, "d:o:x:y:ubp:r")) != -1)
     {
         switch (code)
         {
+            case 'r':
+                REVERSE_PICKING_ORDER = true;
+                break;
+            case 'p':
+                switch (*optarg)
+                {
+                    case 'r':
+                        PICKING_ORDER = RANDOM;
+                        break;
+                    case 'n':
+                        PICKING_ORDER = NASH;
+                        break;
+                    case 'v':
+                        PICKING_ORDER = MAX_VALUE;
+                        break;
+                    case 'w':
+                        PICKING_ORDER = MAX_WEIGHT;
+                        break;
+                    case 'p':
+                        PICKING_ORDER = MAX_PROFIT;
+                        break;
+                    default:
+                        cout << "Picking order arguement: '" << optarg << "' is not recognised" << endl;
+                        exit(1);
+                }
+                break;
             case 'b':
                 OPTIONS.UPPER_BOUND = true;
                 OPTIONS.BOUND_AND_BOUND = true;
@@ -632,7 +678,7 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
         state_t state(num_goods * num_agents);
         bool bound {};
         // --- CHECK UPPER BOUND ---
-        if (OPTIONS.UPPER_BOUND && num_goods - current_state.get_goods_allocated() >= UPPER_BOUND_MIN_LIMIT)
+        if (OPTIONS.UPPER_BOUND && num_goods - current_state.get_goods_allocated() >= (uint64_t)UPPER_BOUND_MIN_LIMIT)
         {
             tie(upper_bound, lower_bound, state, bound) = upper_bound_find_MMS(agent, weights, current_state);
             if (upper_bound <= value_of_best_solution)
@@ -674,6 +720,128 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
     return value_of_best_solution;
 }
 
+
+/*
+ * This functions returns the picking order of the goods based on which order has
+ * been choosen in the command arguments.
+ */
+vector<uint64_t> get_picking_order(const vector<agent_t> &agents, const vector<weight_t> &weights)
+{
+    int num_goods = weights.size();
+    int num_agents = agents.size();
+    vector<uint64_t> picking_order {};
+
+    switch (PICKING_ORDER)
+    {
+        case RANDOM: 
+            {
+                for (int i = 0; i < (int)num_goods; ++i)
+                    picking_order.push_back(i);
+
+                // Since we don't have any picking order optimisation set yet we do a
+                // little random shuffle of the picking order to get some more rounded data
+                random_device rd;
+                mt19937 g(rd());
+                shuffle(picking_order.begin(), picking_order.end(), g);
+                break;
+            }
+        case NASH:
+            {
+                // The pair holds the nash score and the index of the good
+                vector<pair<int, int>> ordering {};
+                for (int good_idx = 0; good_idx < num_goods; ++good_idx)
+                {
+                    ordering.emplace_back(1, good_idx);
+                    for (int agent_idx = 0; agent_idx < num_agents; ++agent_idx)
+                    {
+                        int valuation = agents.at(agent_idx).goods.at(good_idx).value;
+                        // We ignore zero values 
+                        if (valuation == 0)
+                            continue;
+                        ordering.back().first *= valuation;
+                    }
+                }       
+
+                // Sort them from highest to lowest Nash score
+                sort(ordering.begin(), ordering.end(), [](auto a, auto b){ return a.first > b.first; });
+                for (auto [nash, idx] : ordering)
+                    picking_order.emplace_back(idx);
+                break;
+            }
+        case MAX_VALUE:
+            {
+                // Here we calculate the average value for each good and order
+                // them based on that.
+                // The pair holds the value and the index of the good
+                vector<pair<double, int>> ordering {};
+                for (int good_idx = 0; good_idx < num_goods; ++good_idx)
+                {
+                    ordering.emplace_back(0, good_idx);
+                    for (int agent_idx = 0; agent_idx < num_agents; ++agent_idx)
+                    {
+                        int valuation = agents.at(agent_idx).goods.at(good_idx).value;
+                        ordering.back().first += valuation;
+                    }
+                    ordering.back().first /= num_agents;
+                }       
+
+                // Sort them from highest to lowest avg. value
+                sort(ordering.begin(), ordering.end(), [](auto a, auto b){ return a.first > b.first; });
+                for (auto [nash, idx] : ordering)
+                    picking_order.emplace_back(idx);
+
+                break;
+            }
+        case MAX_WEIGHT:
+            {
+                // The pair holds the weight and the index of the good
+                vector<pair<double, int>> ordering {};
+                for (int good_idx = 0; good_idx < num_goods; ++good_idx)
+                    ordering.emplace_back(weights.at(good_idx), good_idx);
+
+                // Sort them from highest to lowest weight
+                sort(ordering.begin(), ordering.end(), [](auto a, auto b){ return a.first > b.first; });
+                for (auto [nash, idx] : ordering)
+                    picking_order.emplace_back(idx);
+                
+                break;
+            }
+        case MAX_PROFIT:
+            {
+                // Here we calculate the average profit for each good and order
+                // them based on that.
+                // The pair holds the avg. profit and the index of the good
+                vector<pair<double, int>> ordering {};
+                for (int good_idx = 0; good_idx < num_goods; ++good_idx)
+                {
+                    ordering.emplace_back(0, good_idx);
+                    for (int agent_idx = 0; agent_idx < num_agents; ++agent_idx)
+                    {
+                        int valuation = agents.at(agent_idx).goods.at(good_idx).value;
+                        ordering.back().first += (double)valuation / weights.at(good_idx);
+                    }
+                    ordering.back().first /= num_agents;
+                }       
+
+                // Sort them from highest to lowest avg. value
+                sort(ordering.begin(), ordering.end(), [](auto a, auto b){ return a.first > b.first; });
+                for (auto [nash, idx] : ordering)
+                    picking_order.emplace_back(idx);
+
+                break;
+            }
+       default: 
+            cout << "The handling of picking order is not implemented yet: " << PICKING_ORDER << endl;
+            exit(1);
+    }
+
+    // If we are suppose to reverse the order we do so
+    if (REVERSE_PICKING_ORDER)
+        reverse(picking_order.begin(), picking_order.end());
+
+    return picking_order;
+}
+
 /**
  * This is the main funtion for the algorithm
  * Here we will run the B&B algorithm to solve the fair allocation of
@@ -691,6 +859,9 @@ pair<allocation_t, double> BBCMMS(const vector<agent_t> &agents,
     {
         cout << "Finding MMS for agent " << agent_idx + 1 << endl;
         agents_MMS.emplace_back(find_MMS(agents.at(agent_idx), num_agents, weights));
+
+        // --- HANDLE THE CASE WHERE WE GET A ZERO MMS VALUE ---
+        // We simply remove the first one that got a zero value and solve without it
         if (agents_MMS.back() == 0)
         {
             auto reduced_agents = agents;
@@ -720,20 +891,9 @@ pair<allocation_t, double> BBCMMS(const vector<agent_t> &agents,
     }
     cout << "MMS found for all agents" << endl;
 
-    // --- HANDLE THE CASE WHERE WE GET A ZERO MMS VALUE ---
-    // We simply remove the first one that got a zero value and solve without it
-
 
     // --- SETTING THE PICKING ORDER ---
-    vector<uint64_t> picking_order_goods {};
-    for (int i = 0; i < (int)num_goods; ++i)
-        picking_order_goods.push_back(i);
-
-    // Since we don't have any picking order optimisation set yet we do a
-    // little random shuffle of the picking order to get some more rounded data
-    random_device rd;
-    mt19937 g(rd());
-    shuffle(picking_order_goods.begin(), picking_order_goods.end(), g);
+    vector<uint64_t> picking_order_goods = get_picking_order(agents, weights);
 
 
     // --- HANDLE PREPROCESSING OF OPTIMISATIONS ---
@@ -772,7 +932,7 @@ pair<allocation_t, double> BBCMMS(const vector<agent_t> &agents,
         }
 
         // --- CHECK UPPER BOUND ---
-        if (OPTIONS.UPPER_BOUND && num_goods - current_state.get_goods_allocated() >= UPPER_BOUND_MIN_LIMIT)
+        if (OPTIONS.UPPER_BOUND && num_goods - current_state.get_goods_allocated() >= (uint64_t)UPPER_BOUND_MIN_LIMIT)
         {
             double upper_bound {}, lower_bound {};
             state_t state(num_goods * num_agents);
