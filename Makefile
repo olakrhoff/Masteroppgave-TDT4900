@@ -7,7 +7,7 @@ OBJ_FILES = $(SRC_FILES:.cpp=.o)
 
 
 CURDIR = '$(PWD)'
-.PHONY: setup run clean execute build analysis run_bb test
+.PHONY: setup run clean execute build analysis run_bb tree test
 
 run: setup clean execute
 
@@ -35,6 +35,10 @@ run_bb: clean setup build
 analysis:
 	python3 src/analysis.py
 
+tree:
+	python3 src/decision_tree.py data/decision_tree.txt
+
 test: setup build
 	./src/bin/test_LPSolver
 	./src/bin/BBCMMS -d data/negative_proof_39_40.txt -o data/analysis -x g9:9 -u -b
+	python3 src/decision_tree.py test
