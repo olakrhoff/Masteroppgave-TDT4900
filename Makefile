@@ -17,6 +17,7 @@ setup:
 clean:  
 	rm -rf $(CURDIR)/src/bin/*
 	#rm -rf $(CURDIR)/plots/*
+	rm test test.pdf decision_tree
 
 build:
 	$(CC) $(CFLAGS) $(CURDIR)/src/generate_dataset.cpp -o $(CURDIR)/src/bin/generate_dataset
