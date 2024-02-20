@@ -4,7 +4,7 @@ from sklearn import tree
 from matplotlib import pyplot as plt
 import graphviz 
 
-def create_and_plot_tree(attribute_data_x, result_data_y, attribute_names=None, target_names=None):
+def create_and_plot_tree(attribute_data_x, result_data_y, attribute_names=None, target_names=None, graph_name="decision_tree"):
     clf = tree.DecisionTreeClassifier()
     clf = clf.fit(attribute_data_x, result_data_y)
     
@@ -16,12 +16,12 @@ def create_and_plot_tree(attribute_data_x, result_data_y, attribute_names=None, 
                                     filled=True, rounded=True,  
                                     special_characters=True)  
     graph = graphviz.Source(dot_data)  
-    graph.render("decision_tree")
+    graph.render(graph_name)
 
 def test():
     iris = load_iris()
     X, y = iris.data, iris.target
-    create_and_plot_tree(X, y, iris.feature_names, iris.target_names)
+    create_and_plot_tree(X, y, iris.feature_names, iris.target_names, "test")
 
 def parse_file(filepath):
     parsed = False
@@ -31,20 +31,23 @@ def parse_file(filepath):
     target_names = None
 
     lines = 0
-    with open(filepath, 'r') as file:
-        for line in file:
-            parsed = True
-            lines += 1
-            print(line)
-            if (lines == 1):
-                attribute_names = line.split(', ')
-            elif (lines == 2):
-                target_names = line.split(', ')
-            else:
-                temp = line.split(', ')
-                attribute_data_x.append([float(val) for val in temp[0:-1]])
-                result_data_y.append(float(temp[-1]))
-
+    try:
+        with open(filepath, 'r') as file:
+            for line in file:
+                parsed = True
+                lines += 1
+                print(line)
+                if (lines == 1):
+                    attribute_names = line.split(', ')
+                elif (lines == 2):
+                    target_names = line.split(', ')
+                else:
+                    temp = line.split(', ')
+                    attribute_data_x.append([float(val) for val in temp[0:-1]])
+                    result_data_y.append(float(temp[-1]))
+    except FileNotFoundError:
+        print("File (", filepath, ") could not be found")
+        return False, None, None, None, None
     return parsed, attribute_data_x, result_data_y, attribute_names, None #target_names
 
 if __name__ == "__main__":
