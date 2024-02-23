@@ -60,7 +60,7 @@ OPTION_Y_T y_axis_option {TIME};
 int UPPER_BOUND_MIN_LIMIT {7};
 PICKING_ORDERS_T PICKING_ORDER {RANDOM};
 bool REVERSE_PICKING_ORDER {false};
-bool EXPORT_RESULTS {false};
+bool EXPORT_RESULT {false};
 
 typedef struct OPTIONS
 {
@@ -253,6 +253,22 @@ void write_data_to_file(const vector<uint64_t> &times)
     }
 
     file.close();
+
+    if (EXPORT_RESULT)
+    {
+        // Here we want to write the result to the global table of results
+        // the file path is stored in the types.h file. We don't want to 
+        // overwrite the data in the file so we will have to append the data
+        // to the end of the file instead
+        file.open(GLOBAL_RESULTS_FILEPATH, ios::out | ios::app);
+
+        // TODO: We need to add the attribute values and which optimisations 
+        // are active and of course the result of the running
+        
+        file << "kake\n";
+
+        file.close();
+    }
 }
 
 typedef struct good
@@ -274,10 +290,8 @@ vector<weight_t> parse_line_to_weights(const string &line)
     vector<weight_t> result {};
     auto weight_strings = split(line, " ");
     for (auto val : weight_strings)
-    {
         result.emplace_back(stoi(val));
-        cout << "HERE?" << endl;
-    }
+
     return result;
 }
 
@@ -1022,7 +1036,6 @@ int main(int argc, char **argv)
             is_first_line = false;
             continue;
         }
-        cout << "HELLO" << endl;
         agents.emplace_back(parse_line_to_values(temp));
     }
     
