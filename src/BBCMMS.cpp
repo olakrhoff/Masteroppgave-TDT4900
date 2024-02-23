@@ -8,11 +8,9 @@
 #include <getopt.h>
 
 #include "LPSolver.h"
+#include "types.h"
 
 using namespace std;
-
-typedef uint64_t weight_t;
-
 
 /**
  * This is code that I have reused from my earlier projects, look at my github 
@@ -62,6 +60,7 @@ OPTION_Y_T y_axis_option {TIME};
 int UPPER_BOUND_MIN_LIMIT {7};
 PICKING_ORDERS_T PICKING_ORDER {RANDOM};
 bool REVERSE_PICKING_ORDER {false};
+bool EXPORT_RESULTS {false};
 
 typedef struct OPTIONS
 {
@@ -99,14 +98,21 @@ OPTIONS_T OPTIONS {};
  *                     w:  MAX_WEIGHT
  *                     p:  MAX_PROFIT
  * -r (Reverse picking order): No argument, reverses the picking order
+ *
+ * --- OTHER ---
+ * 
+ * -e (export results): writes results to the global file of results
  */
 void handle_options(int argc, char **argv)
 {
     int code {};
-    while ((code = getopt(argc, argv, "d:o:x:y:ubp:r")) != -1)
+    while ((code = getopt(argc, argv, "d:o:x:y:ubp:re")) != -1)
     {
         switch (code)
         {
+            case 'e':
+                EXPORT_RESULT = true;
+                break;
             case 'r':
                 REVERSE_PICKING_ORDER = true;
                 break;
@@ -267,9 +273,11 @@ vector<weight_t> parse_line_to_weights(const string &line)
 {
     vector<weight_t> result {};
     auto weight_strings = split(line, " ");
-
     for (auto val : weight_strings)
+    {
         result.emplace_back(stoi(val));
+        cout << "HERE?" << endl;
+    }
     return result;
 }
 
@@ -1014,9 +1022,10 @@ int main(int argc, char **argv)
             is_first_line = false;
             continue;
         }
+        cout << "HELLO" << endl;
         agents.emplace_back(parse_line_to_values(temp));
     }
-
+    
     file.close();
     cout << "Data is parsed" << endl;
 
