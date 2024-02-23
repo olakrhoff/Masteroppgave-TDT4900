@@ -265,7 +265,6 @@ void write_data_to_file(const vector<uint64_t> &times)
         // TODO: We need to add the attribute values and which optimisations 
         // are active and of course the result of the running
         
-        file << "kake\n";
 
         file.close();
     }
