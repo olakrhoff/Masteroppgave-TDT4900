@@ -1,3 +1,6 @@
+#include <cmath>
+#include <cstdint>
+#include <cstdlib>
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -6,6 +9,7 @@
 #include <stack>
 #include <float.h>
 #include <getopt.h>
+#include <utility>
 
 #include "LPSolver.h"
 #include "types.h"
@@ -198,6 +202,17 @@ void handle_options(int argc, char **argv)
     }
 }
 
+typedef struct attributes
+{
+    uint64_t number_of_agents {};
+    uint64_t number_of_goods {};
+    double avg_permutation_distance {};
+    double avg_value_distance {};
+    double m_over_n {};
+} attributes_t;
+
+attributes_t ATTRIBUTES {};
+
 void write_data_to_file(const vector<uint64_t> &times)
 {
     ofstream file;
@@ -276,6 +291,11 @@ typedef struct good
 
     good(double value) : value(value)
     {}
+    
+    operator double() const
+    {
+        return value;
+    }
 } good_t;
 
 typedef struct agent
@@ -739,6 +759,110 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
     return value_of_best_solution;
 }
 
+template <typename T>
+double euclidean_distance(const vector<T> &vec)
+{
+    double sum {};
+
+    for (auto val : vec)
+        sum += pow((double)val, 2);
+
+    return pow(sum, 0.5);
+}
+
+double value_distance(const agent_t &value_a, const agent_t &value_b)
+{
+    int num_goods = (int)value_a.goods.size();
+    double dot_product {};
+
+    for (int i = 0; i < num_goods; ++i)
+        dot_product += value_a.goods.at(i).value * value_b.goods.at(i).value;
+
+    double length = euclidean_distance(value_a.goods) * euclidean_distance(value_b.goods);
+
+    try
+    {
+        return acos(dot_product / length);
+    }
+    catch (...)
+    {
+        cout << "Could not calculate cos-1(" << dot_product / length << ")" << endl;
+        exit(EXIT_FAILURE);
+    }
+}
+
+double find_avg_value_distance(const vector<agent_t> &agents)
+{
+    double sum_distance {};
+    for (int i = 0; i < (int)agents.size(); ++i)
+        for (int j = i + 1; j < (int)agents.size(); ++j)
+            sum_distance += value_distance(agents.at(i), agents.at(j));
+    
+    double n = agents.size();
+    double num_distances = (n * (n - 1)) / 2; // Just some maths to explicitly find the number of pairs
+
+    return sum_distance / num_distances;
+}
+
+/**
+ * This calculates the Euclidean distance between two permutations
+ */
+double permutation_distance(const agent_t &perm_a, const agent_t &perm_b)
+{
+    // value-index pair
+    vector<pair<double, int>> list {};
+    for (int i = 0; i < (int)perm_a.goods.size(); ++i)
+        list.emplace_back(perm_a.goods.at(i).value, i);
+    sort(list.begin(), list.end(), [](auto a, auto b){ return a.first < b.first; });
+
+    vector<int> index_a {};
+    for (auto [val, index] : list)
+        index_a.emplace_back(index);
+
+    list = {};
+    for (int i = 0; i < (int)perm_b.goods.size(); ++i)
+        list.emplace_back(perm_b.goods.at(i).value, i);
+    sort(list.begin(), list.end(), [](auto a, auto b){ return a.first < b.first; });
+
+    vector<int> index_b {};
+    for (auto [val, index] : list)
+        index_b.emplace_back(index);
+
+    // Find the Euclidean distance between the permutations
+    
+    // Get the difference between the vectors
+    transform(index_a.begin(), index_a.end(), index_b.begin(), index_a.begin(), [](double a, double b){ return a - b; });
+    
+    return euclidean_distance(index_a);
+    
+}
+
+double find_avg_permutation_distance(const vector<agent_t> &agents) 
+{
+    double sum_distance {};
+    for (int i = 0; i < (int)agents.size(); ++i)
+        for (int j = i + 1; j < (int)agents.size(); ++j)
+            sum_distance += permutation_distance(agents.at(i), agents.at(j));
+    
+    double n = agents.size();
+    double num_distances = (n * (n - 1)) / 2; // Just some maths to explicitly find the number of pairs
+
+    return sum_distance / num_distances;
+}
+
+/**
+ * This function calculates the different attributes the problem instance has.
+ * These are used to make decisions about optimisations and is part of the 
+ * general output format.
+ */
+void find_attributes(const vector<agent_t> &agents, const vector<weight_t> &weights)
+{
+   ATTRIBUTES.m_over_n = (double)weights.size() / (double)agents.size();
+   ATTRIBUTES.number_of_goods = (uint64_t)weights.size();
+   ATTRIBUTES.number_of_agents = (uint64_t)agents.size();
+   ATTRIBUTES.avg_value_distance = find_avg_value_distance(agents);
+   ATTRIBUTES.avg_permutation_distance = find_avg_permutation_distance(agents);
+}
 
 /*
  * This functions returns the picking order of the goods based on which order has
@@ -911,6 +1035,8 @@ pair<allocation_t, double> BBCMMS(const vector<agent_t> &agents,
     cout << "MMS found for all agents" << endl;
 
 
+
+
     // --- SETTING THE PICKING ORDER ---
     vector<uint64_t> picking_order_goods = get_picking_order(agents, weights);
 
@@ -1066,7 +1192,15 @@ int main(int argc, char **argv)
         allocation_t allocation(num_agents);
         double alpha_MMS {};
         auto start_time = chrono::high_resolution_clock::now();
+       
+        // --- PREPROCESS THE ATTRIBUTES FOR THE PROBLEM INSTANCE ----
+        // We run this preprocess outside of the BBCMMS due to how we handle
+        // the zero value of alpha-MMS values by reducing the instance, that
+        // would give us the incorrect attributes for the instance
+        find_attributes(agents, weights);
+        
         tie(allocation, alpha_MMS) = BBCMMS(run_agents, run_weights);
+        
         auto end_time = chrono::high_resolution_clock::now();
         auto duration = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
 
