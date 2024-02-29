@@ -17,7 +17,6 @@ setup:
 
 clean:  
 	rm -rf $(CURDIR)/src/bin/*
-	#rm -rf $(CURDIR)/plots/*
 	rm test test.pdf decision_tree
 
 build:
