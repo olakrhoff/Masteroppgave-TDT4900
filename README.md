@@ -67,4 +67,4 @@ Usage: ```BBCMMS -d <input_filepath> -o <output_filepath> -x[from:to] <x_axis_da
 * -g
   * This sets the number of goods
 * -o
-  * This sets the output filepath.  
+  * This sets the output filepath to the directory the interval to be generated too. If we don't generate an interval of datasets, this will need a spesific file.
