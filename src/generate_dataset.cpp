@@ -15,11 +15,11 @@ string FILE_OUTPUT_PATH {};
 void handle_options(int argc, char **argv)
 {
     int code {};
-    while ((code = getopt(argc, argv, "a:g:f:")) != -1)
+    while ((code = getopt(argc, argv, "a:g:o:")) != -1)
     {
         switch (code)
         {
-            case 'f':
+            case 'o':
                 {
                     string temp = optarg;
                     FILE_OUTPUT_PATH = temp;

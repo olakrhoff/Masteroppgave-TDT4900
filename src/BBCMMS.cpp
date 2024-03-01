@@ -57,7 +57,7 @@ typedef enum PICKING_ORDERS
 } PICKING_ORDERS_T;
 
 string data_in_filepath;
-string data_out_filepath;
+string data_out_filepath = "data/analysis";
 OPTION_X_T x_axis_option {GOODS};
 uint64_t x_axis_lower_bound {}, x_axis_upper_bound {1}; 
 OPTION_Y_T y_axis_option {TIME};
@@ -279,8 +279,7 @@ void write_data_to_file(const vector<uint64_t> &times)
 
         // TODO: We need to add the attribute values and which optimisations 
         // are active and of course the result of the running
-        
-
+        file << "N, M, M/N, AVG_PERM_DIST, AVG_VAL_DIST, BUDGET/SIZE";
         file.close();
     }
 }
@@ -834,7 +833,6 @@ double permutation_distance(const agent_t &perm_a, const agent_t &perm_b)
     transform(index_a.begin(), index_a.end(), index_b.begin(), index_a.begin(), [](double a, double b){ return a - b; });
     
     return euclidean_distance(index_a);
-    
 }
 
 double find_avg_permutation_distance(const vector<agent_t> &agents) 

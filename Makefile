@@ -29,12 +29,12 @@ fix:
 	bear -- make build
 
 sim: build
-	./src/bin/generate_dataset -a 3 -g 10 -f data/testing_shit.txt
+	./src/bin/generate_dataset -a 3 -g 10 -o data/testing_shit.txt
 	./src/bin/BBCMMS -d data/testing_shit.txt -o data/analysis -x g1:15 -u -b
 	python3 src/analysis.py 
 
 gen: build
-	./src/bin/generate_dataset -a 3 -g 5 -f data/testing_shit.txt
+	./src/bin/generate_dataset -a 3 -g 5 -o data/intervals/N/small/
 
 execute: build
 		./src/bin/generate_dataset # Generate the dataset
@@ -53,5 +53,5 @@ tree:
 
 test: setup build
 	./src/bin/test_LPSolver
-	./src/bin/BBCMMS -d data/negative_proof_39_40.txt -o data/analysis -x g9:9 -u -b
+	./src/bin/BBCMMS -d data/negative_proof_39_40.txt -o data/analysis -x g9:9 -u -b -e
 	python3 src/decision_tree.py test
