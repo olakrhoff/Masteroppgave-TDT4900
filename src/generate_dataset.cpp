@@ -43,19 +43,96 @@ pair<int, int> get_interval(const string &line)
     return {stoi(numbers.at(0)), stoi(numbers.at(1))};
 }
 
+typedef enum ATTRIBUTES
+{
+    NONE,
+    AGENTS,
+    GOODS,
+    AVG_PERMUTATION_DISTANCE,
+    AVG_VALUE_DISTANCE,
+    M_OVER_N,
+    BUDGET_USED_PERCENT
+} ATTRIBUTES_T;
+
+
 int NUMBER_OF_AGENTS_LOW {};
 int NUMBER_OF_AGENTS_HIGH {};
 int NUMBER_OF_GOODS_LOW {};
 int NUMBER_OF_GOODS_HIGH {};
+int PERMUTATION_DISTANCE_LOW {};
+int PERMUTATION_DISTANCE_HIGH {};
+int VALUE_DISTANCE_LOW {};
+int VALUE_DISTANCE_HIGH {};
+int M_OVER_N_RATIO_LOW {};
+int M_OVER_N_RATIO_HIGH {};
+int BUDGET_USED_PERCENT_LOW {};
+int BUDGET_USED_PERCENT_HIGH {};
+
 string FILE_OUTPUT_PATH {};
+ATTRIBUTES_T interval_option {NONE};
 
 void handle_options(int argc, char **argv)
 {
     int code {};
-    while ((code = getopt(argc, argv, "a:g:o:")) != -1)
+    while ((code = getopt(argc, argv, "a:g:o:i:p:v:r:b:")) != -1)
     {
         switch (code)
         {
+            case 'b':
+                {
+                    string temp = optarg;
+                    tie(BUDGET_USED_PERCENT_LOW, BUDGET_USED_PERCENT_HIGH) = get_interval(temp);
+                    break;
+                }
+            case 'r':
+                {
+                    string temp = optarg;
+                    tie(M_OVER_N_RATIO_LOW, M_OVER_N_RATIO_HIGH) = get_interval(temp);
+                    break;
+                }
+            case 'v':
+                {
+                    string temp = optarg;
+                    tie(VALUE_DISTANCE_LOW, VALUE_DISTANCE_HIGH) = get_interval(temp);
+                    break;
+                }
+            case 'p':
+                {
+                    string temp = optarg;
+                    tie(PERMUTATION_DISTANCE_LOW, PERMUTATION_DISTANCE_HIGH) = get_interval(temp);
+                    break;
+                }
+            case 'i':
+                {
+                    char interval = *optarg;
+                    
+                    switch (interval)
+                    {
+                        case 'a':
+                            interval_option = AGENTS;
+                            break;
+                        case 'g':
+                            interval_option = GOODS;
+                            break;
+                        case 'p':
+                            interval_option = AVG_PERMUTATION_DISTANCE;
+                            break;
+                        case 'v':
+                            interval_option = AVG_VALUE_DISTANCE;
+                            break;
+                        case 'r': // Ratio
+                            interval_option = M_OVER_N;
+                            break;
+                        case 'b':
+                            interval_option = BUDGET_USED_PERCENT;
+                            break;
+                        default:
+                            cout << "Interval value not recognised" << endl;
+                            exit(EXIT_FAILURE);
+                    }
+
+                    break;
+                }
             case 'o':
                 {
                     string temp = optarg;
