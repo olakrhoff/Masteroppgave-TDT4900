@@ -8,8 +8,45 @@
 
 using namespace std;
 
-int NUMBER_OF_AGENTS {};
-int NUMBER_OF_GOODS {};
+/**
+ * This is code that I have reused from my earlier projects, look at my github 
+ */
+vector<string> split(const string &line, const string &delimiter)
+{
+    vector<string> result {};
+
+    string temp = line;
+    while ((int)temp.find(delimiter) != -1)
+    {
+        result.emplace_back(temp.substr(0, temp.find(delimiter)));
+        temp = temp.substr(temp.find(delimiter) + delimiter.length());
+    }
+    result.emplace_back(temp);
+
+    return result;
+}
+
+/*
+ * This function is a helper function to parse command line arguments on the
+ * form "<int>:<int>" to "pair<int, int>".
+ */
+pair<int, int> get_interval(const string &line)
+{
+    vector<string> numbers = split(line, ":");
+
+    if (numbers.size() != 2)
+    {
+        cout << "Should get two numbers back when parsing an interval" << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    return {stoi(numbers.at(0)), stoi(numbers.at(1))};
+}
+
+int NUMBER_OF_AGENTS_LOW {};
+int NUMBER_OF_AGENTS_HIGH {};
+int NUMBER_OF_GOODS_LOW {};
+int NUMBER_OF_GOODS_HIGH {};
 string FILE_OUTPUT_PATH {};
 
 void handle_options(int argc, char **argv)
@@ -28,13 +65,13 @@ void handle_options(int argc, char **argv)
             case 'a':
                 {
                     string temp = optarg;
-                    NUMBER_OF_AGENTS = stoi(temp);
+                    tie(NUMBER_OF_AGENTS_LOW, NUMBER_OF_AGENTS_HIGH) = get_interval(temp);
                     break;
                 }
             case 'g':
                 {
                     string temp = optarg;
-                    NUMBER_OF_GOODS = stoi(temp);
+                    tie(NUMBER_OF_GOODS_LOW, NUMBER_OF_GOODS_HIGH) = get_interval(temp);
                     break;
                 }
             default:
@@ -46,15 +83,27 @@ void handle_options(int argc, char **argv)
 
 void validate_options()
 {
-    if (NUMBER_OF_AGENTS == 0)
+    if (NUMBER_OF_AGENTS_LOW == 0 || NUMBER_OF_GOODS_HIGH == 0)
     {
-        cout << "Number of agents must be spescified and >0: -a <number>" << endl;
+        cout << "Number of agents must be spescified and >0: -a <number>:<number>" << endl;
         exit(EXIT_FAILURE);
     }
 
-    if (NUMBER_OF_GOODS == 0)
+    if (NUMBER_OF_AGENTS_HIGH < NUMBER_OF_AGENTS_LOW)
     {
-        cout << "Number of goods must be spescified and >0: -g <number>" << endl;
+        cout << "Invalid range for values of agents, start must be lower than (or equal) to the end" << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    if (NUMBER_OF_GOODS_LOW == 0 || NUMBER_OF_GOODS_HIGH == 0)
+    {
+        cout << "Number of goods must be spescified and >0: -g <number>:<number>" << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    if (NUMBER_OF_GOODS_HIGH < NUMBER_OF_GOODS_LOW)
+    {
+        cout << "Invalid range for values of goods, start must be lower than (or equal) to the end" << endl;
         exit(EXIT_FAILURE);
     }
 
@@ -85,6 +134,7 @@ vector<string> generate_data()
     vector<string> data {};
 
     string temp {};
+    // Generate the weights for the goods
     for (int goods = 0; goods < NUMBER_OF_GOODS; ++goods)
     {
         temp += to_string(get_weight());
@@ -93,6 +143,7 @@ vector<string> generate_data()
     }
     data.emplace_back(temp);
 
+    // Generate the capacity for the agent and values for the goods
     for (int agents = 0; agents < NUMBER_OF_AGENTS; ++agents)
     {
         temp = "";
