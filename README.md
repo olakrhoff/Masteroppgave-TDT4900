@@ -60,7 +60,7 @@ Usage: ```BBCMMS -d <input_filepath> -o <output_filepath> -x[from:to] <x_axis_da
   * This arguement makes it so that the results are written (exported) to the global results table. This is the table used for the generation of the decision tree.
  
 ### generate_dataset.cpp
-Usage: ```generate_dataset -o <output_filepath> -a <from>:<to>  -g <from:to> -i g```
+Usage: ```generate_dataset -o <output_filepath> -a <from>:<to>  -g <from>:<to> -i g```
 
 * -a
   * This sets the number of agents
