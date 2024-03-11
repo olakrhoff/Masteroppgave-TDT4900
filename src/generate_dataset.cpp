@@ -4,6 +4,7 @@
 #include <fstream>
 #include <vector>
 #include <getopt.h>
+#include <filesystem>
 
 #include "types.h"
 
@@ -52,8 +53,15 @@ typedef enum ATTRIBUTES
     AVG_PERMUTATION_DISTANCE,
     AVG_VALUE_DISTANCE,
     M_OVER_N,
-    BUDGET_USED_PERCENT
+    BUDGET_USED_PERCENT,
 } ATTRIBUTES_T;
+
+typedef enum DISTRIBUTIONS
+{
+    RANDOM,
+    NORMAL,
+    UNIFORM
+} DISTRIBUTIONS_T;
 
 
 int NUMBER_OF_AGENTS_LOW {};
@@ -68,6 +76,7 @@ int M_OVER_N_RATIO_LOW {};
 int M_OVER_N_RATIO_HIGH {};
 int BUDGET_USED_PERCENT_LOW {};
 int BUDGET_USED_PERCENT_HIGH {};
+DISTRIBUTIONS_T BUDGET_DISTRIBUTION {};
 
 int INTERVALS {};
 string FILE_OUTPUT_PATH {};
@@ -194,6 +203,13 @@ void validate_options()
         cout << "The output file path must be given: -p <filepath>" << endl;
         exit(EXIT_FAILURE);
     }
+
+    if ((PERMUTATION_DISTANCE_LOW != 0 || PERMUTATION_DISTANCE_HIGH != 0) &&
+        (VALUE_DISTANCE_LOW != 0 || VALUE_DISTANCE_HIGH != 0))
+    {
+        cout << "The avg. permutation distance and the avg. value distance can not be set active at the same time" << endl;
+        exit(EXIT_FAILURE);
+    }
 }
 
 weight_t get_weight()
@@ -211,7 +227,12 @@ uint64_t get_good()
     return 2;
 }
 
-vector<string> generate_data(const int number_of_goods, const int number_of_agents)
+vector<string> generate_data(const int number_of_goods,
+                             const int number_of_agents,
+                             const double avg_permutation_distance,
+                             const double avg_value_distance,
+                             const double m_over_n,
+                             const double budget_used_percent)
 {
     vector<string> data {};
 
@@ -243,8 +264,68 @@ vector<string> generate_data(const int number_of_goods, const int number_of_agen
     return data;
 }
 
+string get_path_to_folder(const string &filepath)
+{
+    if (filepath.find('/') == filepath.npos)
+        return "."; // We are in the directory
+
+    int index = filepath.find_last_of('/');
+
+    return filepath.substr(0, index);
+}
+
+void create_folder_recursive(const string &folder_path)
+{
+    if (folder_path.find('/') != folder_path.npos)
+    {
+        create_folder_recursive(folder_path.substr(0, folder_path.find('/')));
+    }
+    filesystem::create_directory(folder_path);
+}
+
 void write_data_to_file(const vector<string> &data)
 {
+    // Validate that the folder exists, if not we create it
+    string folder_path = get_path_to_folder(FILE_OUTPUT_PATH);
+
+    if (!filesystem::exists(folder_path) || !filesystem::is_directory(folder_path))
+    {
+        cout << "Could not find folder, creating path now..." << endl;
+        try
+        {
+            create_folder_recursive(folder_path);
+        }
+        catch (...)
+        {
+            cout << "Could not create folder path: " << folder_path << endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    if (filesystem::exists(FILE_OUTPUT_PATH))
+    {
+        cout << "File [" << FILE_OUTPUT_PATH << "] already exists, do you want to override it? (y/n)" << endl;
+        string temp;
+        do
+        {
+            getline(cin, temp);
+            if (temp == "y")
+            {
+                break;
+            }
+            else if (temp == "n")
+            {
+                cout << "Aborting file creation" << endl;
+                exit(EXIT_SUCCESS);
+            }
+            else
+            {
+                cout << "Type 'y' for yes or 'n' for no" << endl;
+            }
+        }
+        while (true);
+    }
+
     ofstream file(FILE_OUTPUT_PATH);
 
     if (!file.is_open())
@@ -302,8 +383,17 @@ int main(int argc, char **argv)
     {
         int number_of_goods = get_random_number_from_interval(NUMBER_OF_GOODS_LOW, NUMBER_OF_GOODS_HIGH);
         int number_of_agents = get_random_number_from_interval(NUMBER_OF_AGENTS_LOW, NUMBER_OF_AGENTS_HIGH);
+        double avg_permutation_distance = get_random_number_from_interval(PERMUTATION_DISTANCE_LOW, PERMUTATION_DISTANCE_HIGH);
+        double avg_value_distance = get_random_number_from_interval(VALUE_DISTANCE_LOW, VALUE_DISTANCE_HIGH);
+        double m_over_n = get_random_number_from_interval(M_OVER_N_RATIO_LOW, M_OVER_N_RATIO_HIGH);
+        double budget_used_percent = get_random_number_from_interval(BUDGET_USED_PERCENT_LOW, BUDGET_USED_PERCENT_HIGH);
 
-        vector<string> data = generate_data(number_of_goods, number_of_agents);
+        vector<string> data = generate_data(number_of_goods,
+                                            number_of_agents,
+                                            avg_permutation_distance,
+                                            avg_value_distance,
+                                            m_over_n,
+                                            budget_used_percent);
     
         write_data_to_file(data);
     }
@@ -326,10 +416,10 @@ int main(int argc, char **argv)
                     cout << "Control flow should not take us here" << endl;
                     exit(EXIT_FAILURE);
                 case AGENTS:
-                    number_of_agents = get_value_in_interval(NUMBER_OF_AGENTS_LOW, NUMBER_OF_AGENTS_HIGH, i, INTERVALS);
+                    number_of_agents = (int)get_value_in_interval(NUMBER_OF_AGENTS_LOW, NUMBER_OF_AGENTS_HIGH, i, INTERVALS);
 					break;
                 case GOODS:
-                    number_of_goods = get_value_in_interval(NUMBER_OF_GOODS_LOW, NUMBER_OF_GOODS_HIGH, i, INTERVALS);
+                    number_of_goods = (int)get_value_in_interval(NUMBER_OF_GOODS_LOW, NUMBER_OF_GOODS_HIGH, i, INTERVALS);
 					break;
                 case AVG_PERMUTATION_DISTANCE:
                     avg_permutation_distance = get_value_in_interval(PERMUTATION_DISTANCE_LOW, PERMUTATION_DISTANCE_HIGH, i, INTERVALS);
@@ -348,7 +438,12 @@ int main(int argc, char **argv)
                     exit(EXIT_FAILURE);
             }
 
-            vector<string> data = generate_data(number_of_goods, number_of_agents);
+            vector<string> data = generate_data(number_of_goods,
+                                                number_of_agents,
+                                                avg_permutation_distance,
+                                                avg_value_distance,
+                                                m_over_n,
+                                                budget_used_percent);
             write_data_to_file(data);
             FILE_OUTPUT_PATH = temp_name;
         }
