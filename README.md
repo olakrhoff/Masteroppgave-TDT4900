@@ -67,7 +67,7 @@ Usage: ```generate_dataset -o <output_filepath> -a <from>:<to>  -g <from>:<to> -
 * -g
   * This sets the number of goods
 * -o
-  * This sets the output filepath. If we generate an interval of datasets, a counter will be added before the file type (i.e. <count>.txt).
+  * This sets the output filepath. If we generate an interval of datasets, a counter will be added before the file type (i.e. ```<count>.txt```).
 * -i
   * This sets which attribute we want to generate an interval for, it it is not passed, then we don't generate an interval. All that will happen is that the range which the respective attribute has been given (in its respective argument) will be the interval and not a range from which we randomly choose a value.
   * a: AGENTS
