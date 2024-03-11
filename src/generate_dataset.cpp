@@ -372,6 +372,19 @@ double get_value_in_interval(int lower_bound, int upper_bound, int iteration, in
 
     return lower_bound + (val_per_itr * iteration);
 }
+void add_count_to_filename(string &filename, int count)
+{
+    auto index = filename.find('.'); // Find where the file extention starts
+    if (index == filename.npos)
+    {
+        cout << "Filename does not have an extention" << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    string start = filename.substr(0, index);
+    string end = filename.substr(index);
+    filename = start + to_string(count) + end;
+}
 
 int main(int argc, char **argv)
 {
@@ -402,7 +415,7 @@ int main(int argc, char **argv)
         for (int i = 0; i < INTERVALS; ++i)
         {
             string temp_name = FILE_OUTPUT_PATH;
-            FILE_OUTPUT_PATH += "_" + to_string(i);
+            add_count_to_filename(FILE_OUTPUT_PATH, i);
             int number_of_goods = get_random_number_from_interval(NUMBER_OF_GOODS_LOW, NUMBER_OF_GOODS_HIGH);
             int number_of_agents = get_random_number_from_interval(NUMBER_OF_AGENTS_LOW, NUMBER_OF_AGENTS_HIGH);
             double avg_permutation_distance = get_random_number_from_interval(PERMUTATION_DISTANCE_LOW, PERMUTATION_DISTANCE_HIGH);
