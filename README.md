@@ -60,7 +60,7 @@ Usage: ```BBCMMS -d <input_filepath> -o <output_filepath> -x[from:to] <x_axis_da
   * This arguement makes it so that the results are written (exported) to the global results table. This is the table used for the generation of the decision tree.
  
 ### generate_dataset.cpp
-Usage: ```generate_dataset -o <output_filepath> -a <from>:<to>  -g <from>:<to> -i g```
+Usage: ```generate_dataset -o <output_filepath> -a <from>:<to>  -g <from>:<to> -i g5```
 
 * -a
   * This sets the number of agents
@@ -69,7 +69,7 @@ Usage: ```generate_dataset -o <output_filepath> -a <from>:<to>  -g <from>:<to> -
 * -o
   * This sets the output filepath. If we generate an interval of datasets, a counter will be added before the file type (i.e. ```<count>.txt```).
 * -i
-  * This sets which attribute we want to generate an interval for, it it is not passed, then we don't generate an interval. All that will happen is that the range which the respective attribute has been given (in its respective argument) will be the interval and not a range from which we randomly choose a value.
+  * This sets which attribute we want to generate an interval for, it it is not passed, then we don't generate an interval. All that will happen is that the range which the respective attribute has been given (in its respective argument) will be the interval and not a range from which we randomly choose a value. After the attribute is choosen we expect a number for the number of splits in the interval.
   * a: AGENTS
   * g: GOODS
   * p: AVG_PERMUTATION_DISTANCE
