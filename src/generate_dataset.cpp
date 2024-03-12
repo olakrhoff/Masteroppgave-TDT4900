@@ -66,17 +66,25 @@ typedef enum DISTRIBUTIONS
 
 int NUMBER_OF_AGENTS_LOW {};
 int NUMBER_OF_AGENTS_HIGH {};
+bool NUMBER_OF_AGENTS_ACTIVE {false};
 int NUMBER_OF_GOODS_LOW {};
 int NUMBER_OF_GOODS_HIGH {};
+bool NUMBER_OF_GOODS_ACTIVE {false};
 int PERMUTATION_DISTANCE_LOW {};
 int PERMUTATION_DISTANCE_HIGH {};
+bool PERMUTATION_DISTANCE_ACTIVE {false};
 int VALUE_DISTANCE_LOW {};
 int VALUE_DISTANCE_HIGH {};
+bool VALUE_DISTANCE_ACTIVE {false};
 int M_OVER_N_RATIO_LOW {};
 int M_OVER_N_RATIO_HIGH {};
+bool M_OVER_N_RATIO_ACTIVE {false};
 int BUDGET_USED_PERCENT_LOW {};
 int BUDGET_USED_PERCENT_HIGH {};
+bool BUDGET_USED_PERCENT_ACTIVE {false};
 DISTRIBUTIONS_T BUDGET_DISTRIBUTION {};
+DISTRIBUTIONS_T VALUE_DISTRIBUTION {};
+bool VALUE_DISTRIBUTION_ACTIVE {false};
 
 int INTERVALS {};
 string FILE_OUTPUT_PATH {};
@@ -93,24 +101,28 @@ void handle_options(int argc, char **argv)
                 {
                     string temp = optarg;
                     tie(BUDGET_USED_PERCENT_LOW, BUDGET_USED_PERCENT_HIGH) = get_interval(temp);
+                    BUDGET_USED_PERCENT_ACTIVE = true;
                     break;
                 }
             case 'r':
                 {
                     string temp = optarg;
                     tie(M_OVER_N_RATIO_LOW, M_OVER_N_RATIO_HIGH) = get_interval(temp);
+                    M_OVER_N_RATIO_ACTIVE = true;
                     break;
                 }
             case 'v':
                 {
                     string temp = optarg;
                     tie(VALUE_DISTANCE_LOW, VALUE_DISTANCE_HIGH) = get_interval(temp);
+                    VALUE_DISTANCE_ACTIVE = true;
                     break;
                 }
             case 'p':
                 {
                     string temp = optarg;
                     tie(PERMUTATION_DISTANCE_LOW, PERMUTATION_DISTANCE_HIGH) = get_interval(temp);
+                    PERMUTATION_DISTANCE_ACTIVE = true;
                     break;
                 }
             case 'i':
@@ -144,7 +156,7 @@ void handle_options(int argc, char **argv)
                     
                     string temp = (optarg + 1); // We skip the char at the start
                     INTERVALS = stoi(temp);
-
+                    
                     break;
                 }
             case 'o':
@@ -157,12 +169,14 @@ void handle_options(int argc, char **argv)
                 {
                     string temp = optarg;
                     tie(NUMBER_OF_AGENTS_LOW, NUMBER_OF_AGENTS_HIGH) = get_interval(temp);
+                    NUMBER_OF_AGENTS_ACTIVE = true;
                     break;
                 }
             case 'g':
                 {
                     string temp = optarg;
                     tie(NUMBER_OF_GOODS_LOW, NUMBER_OF_GOODS_HIGH) = get_interval(temp);
+                    NUMBER_OF_GOODS_ACTIVE = true;
                     break;
                 }
             default:
@@ -174,7 +188,7 @@ void handle_options(int argc, char **argv)
 
 void validate_options()
 {
-    if (NUMBER_OF_AGENTS_LOW == 0 || NUMBER_OF_GOODS_HIGH == 0)
+    if (!NUMBER_OF_AGENTS_ACTIVE)
     {
         cout << "Number of agents must be spescified and >0: -a <number>:<number>" << endl;
         exit(EXIT_FAILURE);
@@ -186,7 +200,7 @@ void validate_options()
         exit(EXIT_FAILURE);
     }
 
-    if (NUMBER_OF_GOODS_LOW == 0 || NUMBER_OF_GOODS_HIGH == 0)
+    if (!NUMBER_OF_GOODS_ACTIVE)
     {
         cout << "Number of goods must be spescified and >0: -g <number>:<number>" << endl;
         exit(EXIT_FAILURE);
@@ -204,10 +218,15 @@ void validate_options()
         exit(EXIT_FAILURE);
     }
 
-    if ((PERMUTATION_DISTANCE_LOW != 0 || PERMUTATION_DISTANCE_HIGH != 0) &&
-        (VALUE_DISTANCE_LOW != 0 || VALUE_DISTANCE_HIGH != 0))
+    if (PERMUTATION_DISTANCE_ACTIVE && VALUE_DISTANCE_ACTIVE)
     {
         cout << "The avg. permutation distance and the avg. value distance can not be set active at the same time" << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    if (VALUE_DISTANCE_ACTIVE && VALUE_DISTRIBUTION_ACTIVE)
+    {
+        cout << "You can not specify a value distribution when avg. value distance is active." << endl;
         exit(EXIT_FAILURE);
     }
 }
