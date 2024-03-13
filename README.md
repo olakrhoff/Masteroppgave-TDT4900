@@ -99,3 +99,4 @@ Usage: ```generate_dataset -o <output_filepath> -a <from>:<to>  -g <from>:<to> -
     * n: NORMAL
     * u: UNIFORM
   * Example: ```-d brwu```. Sets budget to random dist. and weights to uniform dist., value is not set, so it is random by default.
+  * Note: if a later assignes a different value to the option the option will be overriden.
