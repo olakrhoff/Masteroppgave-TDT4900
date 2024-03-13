@@ -1,3 +1,4 @@
+#include <cmath>
 #include <cstdlib>
 #include <random>
 #include <iostream>
@@ -45,6 +46,22 @@ pair<int, int> get_interval(const string &line)
     return {stoi(numbers.at(0)), stoi(numbers.at(1))};
 }
 
+vector<pair<char, char>> parse_pairwise_string(const string &line)
+{
+    if (line.size() % 2 != 0)
+    {
+        cout << "Invalid parsing, must have even number of chars to parse pairwise" << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    vector<pair<char, char>> list {};
+
+    for (int i = 0; i < (int)line.length() - 1; i += 2)
+        list.emplace_back(line.at(i), line.at(i + 1));
+
+    return list;
+}
+
 typedef enum ATTRIBUTES
 {
     NONE,
@@ -85,6 +102,8 @@ bool BUDGET_USED_PERCENT_ACTIVE {false};
 DISTRIBUTIONS_T BUDGET_DISTRIBUTION {};
 DISTRIBUTIONS_T VALUE_DISTRIBUTION {};
 bool VALUE_DISTRIBUTION_ACTIVE {false};
+DISTRIBUTIONS_T WEIGHT_DISTRIBUTION {};
+bool WEIGHT_DISTRIBUTION_ACTIVE {false};
 
 int INTERVALS {};
 string FILE_OUTPUT_PATH {};
@@ -93,10 +112,54 @@ ATTRIBUTES_T interval_option {NONE};
 void handle_options(int argc, char **argv)
 {
     int code {};
-    while ((code = getopt(argc, argv, "a:g:o:i:p:v:r:b:")) != -1)
+    while ((code = getopt(argc, argv, "a:g:o:i:p:v:r:b:d:")) != -1)
     {
         switch (code)
         {
+            case 'd':
+                {
+                    string temp = optarg;
+                    vector<pair<char, char>> pairs = parse_pairwise_string(temp);
+
+                    for (auto [option, dist] : pairs)
+                    {
+                        DISTRIBUTIONS_T distribution {};
+                        switch (dist)
+                        {
+                            case 'r':
+                                distribution = RANDOM;
+                                break;
+                            case 'n':
+                                distribution = NORMAL;
+                                break;
+                            case 'u':
+                                distribution = UNIFORM;
+                                break;
+                            default:
+                                cout << "Invalid distribution argument (" << dist << ")" << endl;
+                                exit(EXIT_FAILURE);
+                        }
+                        
+                        switch (option)
+                        {
+                            case 'b':
+                                BUDGET_DISTRIBUTION = distribution;
+                                break;
+                            case 'v':
+                                VALUE_DISTRIBUTION = distribution;
+                                VALUE_DISTRIBUTION_ACTIVE = true;
+                                break;
+                            case 'w':
+                                WEIGHT_DISTRIBUTION = distribution;
+                                WEIGHT_DISTRIBUTION_ACTIVE = true;
+                                break;
+                            default:
+                                cout << "Invalid option argument (" << option << ")" << endl;
+                                exit(EXIT_FAILURE);
+                        }
+                    }
+                    break;
+                }
             case 'b':
                 {
                     string temp = optarg;
@@ -231,9 +294,64 @@ void validate_options()
     }
 }
 
+
+/*
+ * This function takes a value from a normal dist. and maps it to a value in
+ * a given interval
+ */
+double map_normal_dist_to_interval(double lower_bound, double upper_bound, double value)
+{
+    // We cap the value to 3 standard diviations, this covers 99.7% of the interval and is deemd sufficent 
+    if (value < -3.0f) 
+        value = -3.0f;
+    else if (value > 3.0f)
+        value = 3.0f;
+
+
+    double percent = (value + 3.0f) / 6.0f;
+
+    return percent * (upper_bound - lower_bound);
+}
+
+
+double generate_number(double lower_bound, double upper_bound, DISTRIBUTIONS_T distribution)
+{
+    random_device rd;
+    mt19937 generator(rd());
+
+    student_t_distribution<> normal_dist(MAXFLOAT); // As the degrees of freedom approaches infinity we get the standard normal dist.
+    uniform_real_distribution<> uniform_dist(lower_bound, upper_bound);
+
+    switch (distribution)
+    {
+        case RANDOM:
+            if (uniform_dist(generator) > ((upper_bound - lower_bound) / 2))
+                return map_normal_dist_to_interval(lower_bound, upper_bound, normal_dist(generator));
+            else
+                return uniform_dist(generator);
+            break;
+        case NORMAL:
+            return map_normal_dist_to_interval(lower_bound, upper_bound, normal_dist(generator));
+            break;
+        case UNIFORM:
+            return uniform_dist(generator);
+            break;
+        default:
+            cout << "Could not recognise DISTRIBUTION type value (" << (int)WEIGHT_DISTRIBUTION << ")" << endl;
+            exit(EXIT_FAILURE);
+    }
+}
+
+#define MIN_WEIGHT 1
+#define MAX_WEIGHT 100
+
+/*
+ * This functions generates a weight acording to the options given. Mainly it
+ * picks a number in in an interval based on some distribution.
+ */
 weight_t get_weight()
 {
-    return 1;
+    return generate_number(MIN_WEIGHT, MAX_WEIGHT, WEIGHT_DISTRIBUTION);
 }
 
 weight_t get_capacity()
@@ -246,39 +364,42 @@ uint64_t get_good()
     return 2;
 }
 
-vector<string> generate_data(const int number_of_goods,
+typedef struct dataset
+{
+    int num_agents {};
+    int num_goods {};
+    vector<int> budgets {};
+    vector<int> weights {};
+    vector<vector<int>> value_functions {};
+} dataset_t;
+
+dataset_t generate_data(const int number_of_goods,
                              const int number_of_agents,
                              const double avg_permutation_distance,
                              const double avg_value_distance,
                              const double m_over_n,
                              const double budget_used_percent)
 {
-    vector<string> data {};
+    dataset_t data {};
 
-    string temp {};
+    data.num_agents = number_of_agents;
+    data.num_goods = number_of_goods;
+
     // Generate the weights for the goods
     for (int goods = 0; goods < number_of_goods; ++goods)
-    {
-        temp += to_string(get_weight());
-        if (goods + 1 < number_of_goods)
-            temp += " ";
-    }
-    data.emplace_back(temp);
+        data.weights.emplace_back(get_weight());
 
     // Generate the capacity for the agent and values for the goods
     for (int agents = 0; agents < number_of_agents; ++agents)
+        data.budgets.emplace_back(get_capacity());
+
+    for (int agents = 0; agents < number_of_agents; ++agents)
     {
-        temp = "";
-        temp += to_string(get_capacity()) + ": ";
-        
+        vector<int> value_function {};
         for (int goods = 0; goods < number_of_goods; ++goods)
-        {
-            temp += to_string(get_good());
-            if (goods + 1 < number_of_goods)
-                temp += " ";
-        }
-        data.emplace_back(temp);
-    }
+            value_function.emplace_back(get_good());
+        data.value_functions.emplace_back(value_function);
+    }        
 
     return data;
 }
@@ -302,7 +423,7 @@ void create_folder_recursive(const string &folder_path)
     filesystem::create_directory(folder_path);
 }
 
-void write_data_to_file(const vector<string> &data)
+void write_data_to_file(const dataset_t &data)
 {
     // Validate that the folder exists, if not we create it
     string folder_path = get_path_to_folder(FILE_OUTPUT_PATH);
@@ -353,8 +474,29 @@ void write_data_to_file(const vector<string> &data)
         exit(EXIT_FAILURE);
     }
 
-    for (auto line : data)
-        file << line << "\n";
+    // Handle the format of the dataset
+
+    // Firstly, we write all the weights
+    for (int i = 0; i < data.num_goods; ++i)
+    {
+        file << to_string(data.weights.at(i));
+        if (i < data.num_goods - 1)
+            file << " ";
+    }
+    file << endl;
+
+    // Then we write all the value functions, prefixed with the agent's budget
+    for (int i = 0; i < data.num_agents; ++i)
+    {
+        file << to_string(data.budgets.at(i)) << ": ";
+        for (int j = 0; j < data.num_goods; ++j)
+        {
+            file << to_string(data.value_functions.at(i).at(j));
+            if (j < data.num_goods - 1)
+                file << " ";
+        }
+        file << endl;
+    }
 
     file.close();
 }
@@ -420,7 +562,7 @@ int main(int argc, char **argv)
         double m_over_n = get_random_number_from_interval(M_OVER_N_RATIO_LOW, M_OVER_N_RATIO_HIGH);
         double budget_used_percent = get_random_number_from_interval(BUDGET_USED_PERCENT_LOW, BUDGET_USED_PERCENT_HIGH);
 
-        vector<string> data = generate_data(number_of_goods,
+        dataset_t data = generate_data(number_of_goods,
                                             number_of_agents,
                                             avg_permutation_distance,
                                             avg_value_distance,
@@ -470,7 +612,7 @@ int main(int argc, char **argv)
                     exit(EXIT_FAILURE);
             }
 
-            vector<string> data = generate_data(number_of_goods,
+            dataset_t data = generate_data(number_of_goods,
                                                 number_of_agents,
                                                 avg_permutation_distance,
                                                 avg_value_distance,
