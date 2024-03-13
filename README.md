@@ -88,7 +88,8 @@ Usage: ```generate_dataset -o <output_filepath> -a <from>:<to>  -g <from>:<to> -
 * -b
   * Budget used percent
   * Format: ```-b <from>:<to>``` the values are integers in for of percent
-  * Example: ```-b 50:150``` gives the interval of 50% to 150%  
+  * Example: ```-b 50:150``` gives the interval of 50% to 150%
+  * This defaults to ```100:150``` if the argument is not passed, this means that we will scale the budgets by default so that there will almost guaranteed be a small or medium charity.
 * -d
   * Distributions:
   * Format: ```-d <option><dist>...<option><dist>```
