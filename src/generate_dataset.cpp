@@ -342,8 +342,8 @@ double generate_number(double lower_bound, double upper_bound, DISTRIBUTIONS_T d
     }
 }
 
-#define MIN_WEIGHT 1
-#define MAX_WEIGHT 100
+#define MIN_INTERVAL 1
+#define MAX_INTERVAL 100
 
 /*
  * This functions generates a weight acording to the options given. Mainly it
@@ -351,7 +351,7 @@ double generate_number(double lower_bound, double upper_bound, DISTRIBUTIONS_T d
  */
 weight_t get_weight()
 {
-    return generate_number(MIN_WEIGHT, MAX_WEIGHT, WEIGHT_DISTRIBUTION);
+    return generate_number(MIN_INTERVAL, MAX_INTERVAL, WEIGHT_DISTRIBUTION);
 }
 
 weight_t get_capacity()
@@ -359,9 +359,9 @@ weight_t get_capacity()
     return 10;
 }
 
-uint64_t get_good()
+uint64_t get_value_for_good()
 {
-    return 2;
+    return generate_number(MIN_INTERVAL, MAX_INTERVAL, VALUE_DISTRIBUTION);
 }
 
 typedef struct dataset
@@ -397,7 +397,7 @@ dataset_t generate_data(const int number_of_goods,
     {
         vector<int> value_function {};
         for (int goods = 0; goods < number_of_goods; ++goods)
-            value_function.emplace_back(get_good());
+            value_function.emplace_back(get_value_for_good());
         data.value_functions.emplace_back(value_function);
     }        
 
