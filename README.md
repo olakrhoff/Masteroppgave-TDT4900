@@ -64,10 +64,12 @@ Usage: ```generate_dataset -o <output_filepath> -a <from>:<to>  -g <from>:<to> -
 
 * -a
   * This sets the number of agents
+  * Example: ```-a 3:5```
 * -g
   * This sets the number of goods
+  * Example: ```-g 5:15```
 * -o
-  * This sets the output filepath. If we generate an interval of datasets, a counter will be added before the file type (i.e. ```<count>.txt```).
+  * This sets the output filepath. If we generate an interval of datasets, a counter will be added before the file type (i.e. ```filename<count>.txt```).
 * -i
   * This sets which attribute we want to generate an interval for, it it is not passed, then we don't generate an interval. All that will happen is that the range which the respective attribute has been given (in its respective argument) will be the interval and not a range from which we randomly choose a value. After the attribute is choosen we expect a number for the number of splits in the interval.
   * a: AGENTS
@@ -75,4 +77,25 @@ Usage: ```generate_dataset -o <output_filepath> -a <from>:<to>  -g <from>:<to> -
   * p: AVG_PERMUTATION_DISTANCE
   * v: AVG_VALUE_DISTANCE
   * r: M_OVER_N (ratio)
-  * b: BUDGET_USED_PERCENT 
+  * b: BUDGET_USED_PERCENT
+  * Example: ```-i a5``` (use the agent interval and split it into 5 steps)
+* -p
+  * Average permutation distance.
+* -v
+  * Average value distance.
+* -r
+  * M over N ratio.
+* -b
+  * Budget used percent
+* -d
+  * Distributions:
+  * Format ```-d <option><dist>...<option><dist>```
+  * Takes a string of pairwise alternatives the options are
+    * b: BUDGET
+    * v: VALUE
+    * w: WEIGHT
+  * And the distributions are:
+    * r: RANDOM
+    * n: NORMAL
+    * u: UNIFORM
+  * Example: ```-d brwu```. Sets budget to random dist. and weights to uniform dist., value is not set, so it is random by default.
