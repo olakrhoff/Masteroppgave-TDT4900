@@ -70,6 +70,7 @@ Usage: ```generate_dataset -o <output_filepath> -a <from>:<to>  -g <from>:<to> -
   * Example: ```-g 5:15```
 * -o
   * This sets the output filepath. If we generate an interval of datasets, a counter will be added before the file type (i.e. ```filename<count>.txt```).
+  * The program will create the directories in the filepath if it can't find them. If the file already exists, it will prompt the user with this info and the choice of either overwriting or aborting.
 * -i
   * This sets which attribute we want to generate an interval for, it it is not passed, then we don't generate an interval. All that will happen is that the range which the respective attribute has been given (in its respective argument) will be the interval and not a range from which we randomly choose a value. After the attribute is choosen we expect a number for the number of splits in the interval.
   * a: AGENTS
