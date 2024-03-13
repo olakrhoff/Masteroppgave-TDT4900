@@ -87,9 +87,11 @@ Usage: ```generate_dataset -o <output_filepath> -a <from>:<to>  -g <from>:<to> -
   * M over N ratio.
 * -b
   * Budget used percent
+  * Format: ```-b <from>:<to>``` the values are integers in for of percent
+  * Example: ```-b 50:150``` gives the interval of 50% to 150%  
 * -d
   * Distributions:
-  * Format ```-d <option><dist>...<option><dist>```
+  * Format: ```-d <option><dist>...<option><dist>```
   * Takes a string of pairwise alternatives the options are
     * b: BUDGET
     * v: VALUE
