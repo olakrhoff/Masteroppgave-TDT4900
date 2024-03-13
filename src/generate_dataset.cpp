@@ -1,5 +1,6 @@
 #include <cmath>
 #include <cstdlib>
+#include <numeric>
 #include <random>
 #include <iostream>
 #include <fstream>
@@ -93,11 +94,11 @@ bool PERMUTATION_DISTANCE_ACTIVE {false};
 int VALUE_DISTANCE_LOW {};
 int VALUE_DISTANCE_HIGH {};
 bool VALUE_DISTANCE_ACTIVE {false};
-int M_OVER_N_RATIO_LOW {};
-int M_OVER_N_RATIO_HIGH {};
+double M_OVER_N_RATIO_LOW {};
+double M_OVER_N_RATIO_HIGH {};
 bool M_OVER_N_RATIO_ACTIVE {false};
-int BUDGET_USED_PERCENT_LOW {};
-int BUDGET_USED_PERCENT_HIGH {};
+double BUDGET_USED_PERCENT_LOW {1};
+double BUDGET_USED_PERCENT_HIGH {1.5};
 bool BUDGET_USED_PERCENT_ACTIVE {false};
 DISTRIBUTIONS_T BUDGET_DISTRIBUTION {};
 DISTRIBUTIONS_T VALUE_DISTRIBUTION {};
@@ -356,7 +357,7 @@ weight_t get_weight()
 
 weight_t get_capacity()
 {
-    return 10;
+    return generate_number(MIN_INTERVAL, MAX_INTERVAL, BUDGET_DISTRIBUTION);   
 }
 
 uint64_t get_value_for_good()
@@ -393,6 +394,20 @@ dataset_t generate_data(const int number_of_goods,
     for (int agents = 0; agents < number_of_agents; ++agents)
         data.budgets.emplace_back(get_capacity());
 
+    // We have now generated the distribution of the weights, we now need to
+    // scale it so it fits the budget used percent
+    double total_weight = accumulate(data.weights.begin(), data.weights.end(), 0);
+
+    double wanted_total_budget = total_weight / budget_used_percent;
+    
+    double dist_total_budget = accumulate(data.budgets.begin(), data.budgets.end(), 0);
+    
+    double scale_factor = wanted_total_budget / dist_total_budget;
+    
+    transform(data.budgets.begin(), data.budgets.end(), data.budgets.begin(), [scale_factor](double a){ return round(a * scale_factor); });
+
+
+    // Lastly, we generate the value functions
     for (int agents = 0; agents < number_of_agents; ++agents)
     {
         vector<int> value_function {};
@@ -563,11 +578,11 @@ int main(int argc, char **argv)
         double budget_used_percent = get_random_number_from_interval(BUDGET_USED_PERCENT_LOW, BUDGET_USED_PERCENT_HIGH);
 
         dataset_t data = generate_data(number_of_goods,
-                                            number_of_agents,
-                                            avg_permutation_distance,
-                                            avg_value_distance,
-                                            m_over_n,
-                                            budget_used_percent);
+                                       number_of_agents,
+                                       avg_permutation_distance,
+                                       avg_value_distance,
+                                       m_over_n,
+                                       budget_used_percent);
     
         write_data_to_file(data);
     }
