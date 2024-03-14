@@ -60,6 +60,7 @@ string data_in_filepath;
 string data_out_filepath = "data/analysis";
 OPTION_X_T x_axis_option {GOODS};
 uint64_t x_axis_lower_bound {}, x_axis_upper_bound {1}; 
+bool RUN_SINGLE_X {true};
 OPTION_Y_T y_axis_option {TIME};
 int UPPER_BOUND_MIN_LIMIT {7};
 PICKING_ORDERS_T PICKING_ORDER {RANDOM};
@@ -176,9 +177,12 @@ void handle_options(int argc, char **argv)
                     }
                     string temp = optarg;
                     temp = temp.substr(1);
+                    if (temp.empty() || temp.length() == 0)
+                        break;
                     auto bounds = split(temp, ":");
                     x_axis_lower_bound = stoi(bounds.at(0));
                     x_axis_upper_bound = stoi(bounds.at(1));
+                    RUN_SINGLE_X = false;
                     break;
                 }
             case 'y':
@@ -1173,11 +1177,16 @@ int main(int argc, char **argv)
 
     vector<uint64_t> times {};
 
-    if (x_axis_upper_bound > agents.at(0).goods.size())
+    if (RUN_SINGLE_X)
+        x_axis_lower_bound = x_axis_upper_bound = agents.at(0).goods.size();
+    else if (x_axis_upper_bound > agents.at(0).goods.size())
     {
         cout << "Correcting UPPER BOUND from: " << x_axis_upper_bound << " to: ";
         x_axis_upper_bound =  agents.at(0).goods.size(); 
         cout << x_axis_upper_bound << endl;
+
+        if (x_axis_upper_bound > x_axis_lower_bound)
+            x_axis_lower_bound = x_axis_upper_bound;
     }
     for (int run = x_axis_lower_bound; run <= (int)x_axis_upper_bound; ++run)
     {

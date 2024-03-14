@@ -1,3 +1,5 @@
+#!/bin/bash
+
 CC = g++
 CFLAGS = -std=c++20 -O3 -g -Wall -Wextra
 LDFLAGS = -llpsolve55
@@ -17,7 +19,6 @@ setup:
 
 clean:  
 	rm -rf $(CURDIR)/src/bin/*
-	rm test test.pdf decision_tree
 
 build:
 	$(CC) $(CFLAGS) $(CURDIR)/src/generate_dataset.cpp -o $(CURDIR)/src/bin/generate_dataset $(INCLUDE_DIRS)
@@ -34,8 +35,7 @@ sim: build
 	python3 src/analysis.py 
 
 gen: build
-#	./src/bin/generate_dataset -a 3:15 -g 6:6 -o data/intervals/N/small.txt -i a5
-	./src/bin/generate_dataset -a 3:3 -g 5:20 -d wn -o data/intervals/M/small.txt -i g5
+	./src/bin/generate_dataset -a 3:3 -g 3:9 -d wnvnbn -o data/intervals/N/small.txt -i g5
 
 execute: build
 		./src/bin/generate_dataset # Generate the dataset
@@ -43,8 +43,8 @@ execute: build
 		python3 src/analysis.py # Run the analysis of the generated data
 
 run_bb: clean setup build
-	./src/bin/BBCMMS -d data/input_data_test.txt -o data/analysis_naive -x g1:12 -u
-	./src/bin/BBCMMS -d data/input_data_test.txt -o data/analysis_naive -x g1:12 -u -b
+#	./src/bin/BBCMMS -d data/intervals/N/small2.txt -o data/analysis_small -x g24:24 -u
+	./src/bin/BBCMMS -d data/intervals/N/small4.txt -o data/analysis_small -x g -u -b
 
 analysis:
 	python3 src/analysis.py
