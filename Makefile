@@ -35,7 +35,7 @@ sim: build
 	python3 src/analysis.py 
 
 gen: build
-	./src/bin/generate_dataset -a 3:3 -g 3:9 -d wnvnbn -o data/intervals/N/small.txt -i g5
+	./src/bin/generate_dataset -a 6:7 -g 3:3 -d wnvnbn -r 1:3 -o data/intervals/permutation/small.txt -i p5
 
 execute: build
 		./src/bin/generate_dataset # Generate the dataset
@@ -44,7 +44,7 @@ execute: build
 
 run_bb: clean setup build
 #	./src/bin/BBCMMS -d data/intervals/N/small2.txt -o data/analysis_small -x g24:24 -u
-	./src/bin/BBCMMS -d data/intervals/N/small4.txt -o data/analysis_small -x g -u -b
+	./src/bin/BBCMMS -d data/intervals/M_over_N/large1.txt -o data/analysis_small -x g -u -b
 
 analysis:
 	python3 src/analysis.py

@@ -386,12 +386,16 @@ dataset_t generate_data(const int number_of_goods,
     data.num_agents = number_of_agents;
     data.num_goods = number_of_goods;
 
+    // If we have M/N ratio active, we need to override the given number of goods
+    if (M_OVER_N_RATIO_ACTIVE)
+        data.num_goods = data.num_agents * m_over_n;
+
     // Generate the weights for the goods
-    for (int goods = 0; goods < number_of_goods; ++goods)
+    for (int goods = 0; goods < data.num_goods; ++goods)
         data.weights.emplace_back(get_weight());
 
     // Generate the capacity for the agent and values for the goods
-    for (int agents = 0; agents < number_of_agents; ++agents)
+    for (int agents = 0; agents < data.num_agents; ++agents)
         data.budgets.emplace_back(get_capacity());
 
     // We have now generated the distribution of the weights, we now need to
@@ -408,10 +412,10 @@ dataset_t generate_data(const int number_of_goods,
 
 
     // Lastly, we generate the value functions
-    for (int agents = 0; agents < number_of_agents; ++agents)
+    for (int agents = 0; agents < data.num_agents; ++agents)
     {
         vector<int> value_function {};
-        for (int goods = 0; goods < number_of_goods; ++goods)
+        for (int goods = 0; goods < data.num_goods; ++goods)
             value_function.emplace_back(get_value_for_good());
         data.value_functions.emplace_back(value_function);
     }        
