@@ -82,10 +82,15 @@ Usage: ```generate_dataset -o <output_filepath> -a <from>:<to>  -g <from>:<to> -
   * Example: ```-i a5``` (use the agent interval and split it into 5 steps)
 * -p
   * Average permutation distance.
+  * Format: ```-p <from>:<to>``` the values are integers for the ratio
+  * Example: ```-p 40:60``` this gives the interval from 40% of max avg. distance to 60%. The values have to be in the interval of [0, 100]
 * -v
   * Average value distance.
 * -r
   * M over N ratio.
+  * Format: ```-r <from>:<to>``` the values are integers for the ratio
+  * Example: ```-r 1:5```
+  * There is no default here, if it is not active we use the value passed for the number of goods. Using this will in fact override the number of goods passed in.
 * -b
   * Budget used percent
   * Format: ```-b <from>:<to>``` the values are integers in for of percent
