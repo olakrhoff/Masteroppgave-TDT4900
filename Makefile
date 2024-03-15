@@ -1,8 +1,16 @@
-#!/bin/bash
+ARCH := $(shell uname -m)
+
+ifeq ($(ARCH), arm64)
+LIBRARY_PATH = -L/opt/homebrew/lib
+INCLUDE_PATH = -I/opt/homebrew/include
+else
+LIBRARY_PATH =
+INCLUDE_PATH =
+endif
 
 CC = g++
-CFLAGS = -std=c++20 -O3 -g -Wall -Wextra
-LDFLAGS = -llpsolve55
+CFLAGS = -std=c++20 -O3 -g -Wall -Wextra $(INCLUDE_PATH)
+LDFLAGS = $(LIBRARY_PATH) -llpsolve55
 INCLUDE_DIRS = -I$(CURDIR)/include/
 
 SRC_FILES = $(CURDIR)/src/BBCMMS.cpp $(CURDIR)/src/LPSolver.cpp 
@@ -10,6 +18,7 @@ OBJ_FILES = $(SRC_FILES:.cpp=.o)
 
 
 CURDIR = '$(PWD)'
+
 .PHONY: setup run clean execute build analysis run_bb tree test fix gen
 
 run: setup clean execute
