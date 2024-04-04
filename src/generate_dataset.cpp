@@ -1,10 +1,9 @@
-#include <cmath>
-#include <cstdlib>
 #include <numeric>
 #include <random>
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <list>
 #include <getopt.h>
 #include <filesystem>
 
@@ -186,6 +185,8 @@ void handle_options(int argc, char **argv)
                 {
                     string temp = optarg;
                     tie(PERMUTATION_DISTANCE_LOW, PERMUTATION_DISTANCE_HIGH) = get_interval(temp);
+                    PERMUTATION_DISTANCE_LOW /= 100;
+                    PERMUTATION_DISTANCE_HIGH /= 100;
                     PERMUTATION_DISTANCE_ACTIVE = true;
                     break;
                 }
@@ -293,6 +294,15 @@ void validate_options()
         cout << "You can not specify a value distribution when avg. value distance is active." << endl;
         exit(EXIT_FAILURE);
     }
+
+    if (PERMUTATION_DISTANCE_ACTIVE && 
+            (PERMUTATION_DISTANCE_LOW < 0 || PERMUTATION_DISTANCE_LOW > 1 || 
+             PERMUTATION_DISTANCE_HIGH < 0 || PERMUTATION_DISTANCE_HIGH > 1))
+    {
+        cout << "The range for the avg. permuation distance in an interval must be [0, 1]" << endl;
+        exit(EXIT_FAILURE);
+    }
+
 }
 
 
@@ -393,14 +403,19 @@ vector<uint64_t> generate_permutation(double phi, uint64_t num)
 
     vector<uint64_t> permutation {};
     
+    
     list<uint64_t> temp_permutation {};
+    
+    // First index will always start here
+    temp_permutation.push_front(0);
+
     // We need to place all the indices
-    for (int i = 0; i < num; ++i)
+    for (int i = 1; i < (int)num; ++i)
     {
         // We begin at the back of the partial permuation
         int j = i;
         // Loop towards the start
-        for (; j > 1; --j)
+        for (; j > 0; --j)
         {
             // Find the probablity at each step for the chance that we stop here
             // and 'j' bacomes the 'i'-th index's index
@@ -412,7 +427,7 @@ vector<uint64_t> generate_permutation(double phi, uint64_t num)
             probablity /= divider;
 
             // If probablity holds, then we say that we place current index at this place
-            if ((double)(random_number_from_interval(0, 100) / 100.0) <= probablity)
+            if ((double)(get_random_number_from_interval(0, 100) / 100.0) <= probablity)
                 break;
         }
 
@@ -420,8 +435,8 @@ vector<uint64_t> generate_permutation(double phi, uint64_t num)
         auto itr = temp_permutation.begin();
         for (int s = 0; s < j; ++s)
             itr++;
-
-        itr.insert(i);
+        
+        temp_permutation.insert(itr--, i);
     }
 
     // Convert list to vector and return the permutation
@@ -497,11 +512,11 @@ dataset_t generate_data(const int number_of_goods,
             sort(value_function.begin(), value_function.end());
             
             // We then generate a permutation
-            auto permutation = generate_parmutation(avg_permutation_distance, data.num_goods);
-            // We then place the sorted values at the indices from the permutation
-            for (int i = 0; i < permutation.size(); ++i)
-                data.value_functions.at(agent_idx).at(i) = value_function.at(permutation.at(i));
+            auto permutation = generate_permutation(avg_permutation_distance, data.num_goods);
 
+            // We then place the sorted values at the indices from the permutation
+            for (int i = 0; i < (int)permutation.size(); ++i)
+                data.value_functions.at(agent_idx).at(i) = value_function.at(permutation.at(i));
         }
     }
 
