@@ -365,6 +365,73 @@ uint64_t get_value_for_good()
     return generate_number(MIN_INTERVAL, MAX_INTERVAL, VALUE_DISTRIBUTION);
 }
 
+/*
+ *  This function is used to generate a random value in an interval drawn from
+ *  a uniform distribution.
+ */
+int get_random_number_from_interval(int lower_bound, int upper_bound)
+{
+    random_device rd;
+    mt19937 generator(rd());
+
+    uniform_int_distribution<> distribution(lower_bound, upper_bound);
+
+    return distribution(generator);
+}
+
+/**
+ * This funciton will generate a permutation from the Mallows model.
+ * The exact method used is the RIM sampling method.
+ */
+vector<uint64_t> generate_permutation(double phi, uint64_t num)
+{
+    if (phi < 0 || phi > 1)
+    {
+        cout << "The phi value passed to 'generate_permutation' must be [0, 1]" << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    vector<uint64_t> permutation {};
+    
+    list<uint64_t> temp_permutation {};
+    // We need to place all the indices
+    for (int i = 0; i < num; ++i)
+    {
+        // We begin at the back of the partial permuation
+        int j = i;
+        // Loop towards the start
+        for (; j > 1; --j)
+        {
+            // Find the probablity at each step for the chance that we stop here
+            // and 'j' bacomes the 'i'-th index's index
+            double probablity = pow(phi, i - j); 
+            double divider = 0;
+            for (int s = 0; s <= i; ++s)
+                divider += pow(phi, s);
+
+            probablity /= divider;
+
+            // If probablity holds, then we say that we place current index at this place
+            if ((double)(random_number_from_interval(0, 100) / 100.0) <= probablity)
+                break;
+        }
+
+        // Here we actually place the index into its place
+        auto itr = temp_permutation.begin();
+        for (int s = 0; s < j; ++s)
+            itr++;
+
+        itr.insert(i);
+    }
+
+    // Convert list to vector and return the permutation
+    for (auto val : temp_permutation)
+        permutation.emplace_back(val);
+
+    return permutation;
+}
+
+
 typedef struct dataset
 {
     int num_agents {};
@@ -375,11 +442,11 @@ typedef struct dataset
 } dataset_t;
 
 dataset_t generate_data(const int number_of_goods,
-                             const int number_of_agents,
-                             const double avg_permutation_distance,
-                             const double avg_value_distance,
-                             const double m_over_n,
-                             const double budget_used_percent)
+                        const int number_of_agents,
+                        const double avg_permutation_distance,
+                        const double avg_value_distance,
+                        const double m_over_n,
+                        const double budget_used_percent)
 {
     dataset_t data {};
 
@@ -411,7 +478,7 @@ dataset_t generate_data(const int number_of_goods,
     transform(data.budgets.begin(), data.budgets.end(), data.budgets.begin(), [scale_factor](double a){ return round(a * scale_factor); });
 
 
-    // Lastly, we generate the value functions
+    // We generate the value functions
     for (int agents = 0; agents < data.num_agents; ++agents)
     {
         vector<int> value_function {};
@@ -419,6 +486,24 @@ dataset_t generate_data(const int number_of_goods,
             value_function.emplace_back(get_value_for_good());
         data.value_functions.emplace_back(value_function);
     }        
+
+    // If we need to fix the avg. permutation distance
+    if (PERMUTATION_DISTANCE_ACTIVE)
+    {
+        for (int agent_idx = 0; agent_idx < data.num_agents; ++agent_idx)
+        {
+            auto value_function = data.value_functions.at(agent_idx);
+            // Firstly we sort the current values
+            sort(value_function.begin(), value_function.end());
+            
+            // We then generate a permutation
+            auto permutation = generate_parmutation(avg_permutation_distance, data.num_goods);
+            // We then place the sorted values at the indices from the permutation
+            for (int i = 0; i < permutation.size(); ++i)
+                data.value_functions.at(agent_idx).at(i) = value_function.at(permutation.at(i));
+
+        }
+    }
 
     return data;
 }
@@ -520,19 +605,6 @@ void write_data_to_file(const dataset_t &data)
     file.close();
 }
 
-/*
- *  This function is used to generate a random value in an interval drawn from
- *  a uniform distribution.
- */
-int get_random_number_from_interval(int lower_bound, int upper_bound)
-{
-    random_device rd;
-    mt19937 generator(rd());
-
-    uniform_int_distribution<> distribution(lower_bound, upper_bound);
-
-    return distribution(generator);
-}
 
 /*
  * This function gets values in an interval split into equal steps. Such that at
