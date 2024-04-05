@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <numeric>
 #include <random>
 #include <iostream>
@@ -178,6 +179,8 @@ void handle_options(int argc, char **argv)
                 {
                     string temp = optarg;
                     tie(VALUE_DISTANCE_LOW, VALUE_DISTANCE_HIGH) = get_interval(temp);
+                    VALUE_DISTANCE_LOW /= 100;
+                    VALUE_DISTANCE_HIGH /= 100;
                     VALUE_DISTANCE_ACTIVE = true;
                     break;
                 }
@@ -303,6 +306,13 @@ void validate_options()
         exit(EXIT_FAILURE);
     }
 
+    if (VALUE_DISTANCE_ACTIVE && 
+            (VALUE_DISTANCE_LOW < 0 || VALUE_DISTANCE_LOW > 1 || 
+             VALUE_DISTANCE_HIGH < 0 || VALUE_DISTANCE_HIGH > 1))
+    {
+        cout << "The range for the avg. value distance in an interval must be [0, 1]" << endl;
+        exit(EXIT_FAILURE);
+    }
 }
 
 
@@ -446,6 +456,46 @@ vector<uint64_t> generate_permutation(double phi, uint64_t num)
     return permutation;
 }
 
+/**
+ * This function creates a random normalsied point in the positive part of R^m.
+ */
+vector<double> generate_random_point(const int m)
+{
+    vector<double> point;
+
+    for (int i = 0; i < m; ++i)
+    {
+        double val = (double)get_random_number_from_interval(0, 100);
+        point.emplace_back(val / 100);
+    }
+
+    return point;
+}
+
+vector<double> generate_value_point(const vector<double> &centre, const double gamma)
+{
+    if (gamma < 0 || gamma > 1)
+    {
+        cout << "Gamma needs to be in [0,1]" << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    vector<double> point;
+
+    while (point.size() != centre.size())
+    {
+        double offset = ((double)get_random_number_from_interval(-100, 100)) / 100;
+
+        offset *= gamma;
+
+        if (centre.at(point.size()) + offset < 0)
+            continue;
+
+        point.emplace_back(centre.at(point.size()) + offset);
+    }
+
+    return point;
+}
 
 typedef struct dataset
 {
@@ -493,14 +543,38 @@ dataset_t generate_data(const int number_of_goods,
     transform(data.budgets.begin(), data.budgets.end(), data.budgets.begin(), [scale_factor](double a){ return round(a * scale_factor); });
 
 
-    // We generate the value functions
-    for (int agents = 0; agents < data.num_agents; ++agents)
+    // if we will generate avg. value distance
+    if (VALUE_DISTANCE_ACTIVE)
     {
-        vector<int> value_function {};
-        for (int goods = 0; goods < data.num_goods; ++goods)
-            value_function.emplace_back(get_value_for_good());
-        data.value_functions.emplace_back(value_function);
-    }        
+        vector<double> centre = generate_random_point(data.num_goods);
+
+        auto double_to_int = [](vector<double> &vec)
+        {
+            vector<int> res;
+            for (auto val : vec)
+                res.emplace_back(val * 100);
+            return res;
+        };
+
+        data.value_functions.emplace_back(double_to_int(centre));
+
+        for (int num_agents = 1; num_agents < data.num_agents; ++num_agents)
+        {
+            vector<double> point = generate_value_point(centre, avg_value_distance);
+            data.value_functions.emplace_back(double_to_int(point));
+        }
+    }
+    else
+    {
+        // We generate the value functions
+        for (int agents = 0; agents < data.num_agents; ++agents)
+        {
+            vector<int> value_function {};
+            for (int goods = 0; goods < data.num_goods; ++goods)
+                value_function.emplace_back(get_value_for_good());
+            data.value_functions.emplace_back(value_function);
+        }
+    }
 
     // If we need to fix the avg. permutation distance
     if (PERMUTATION_DISTANCE_ACTIVE)
@@ -696,21 +770,51 @@ int main(int argc, char **argv)
                     cout << "Control flow should not take us here" << endl;
                     exit(EXIT_FAILURE);
                 case AGENTS:
+                    if (!NUMBER_OF_AGENTS_ACTIVE)
+                    {
+                        cout << "Number of agents must be specified for it to be used in interval" << endl;
+                        exit(EXIT_FAILURE);
+                    }
                     number_of_agents = (int)get_value_in_interval(NUMBER_OF_AGENTS_LOW, NUMBER_OF_AGENTS_HIGH, i, INTERVALS);
 					break;
                 case GOODS:
+                    if (!NUMBER_OF_GOODS_ACTIVE)
+                    {
+                        cout << "Number of goods must be specified for it to be used in interval" << endl;
+                        exit(EXIT_FAILURE);
+                    }
                     number_of_goods = (int)get_value_in_interval(NUMBER_OF_GOODS_LOW, NUMBER_OF_GOODS_HIGH, i, INTERVALS);
 					break;
                 case AVG_PERMUTATION_DISTANCE:
+                    if (!PERMUTATION_DISTANCE_ACTIVE)
+                    {
+                        cout << "Permutation distance must be specified for it to be used in interval" << endl;
+                        exit(EXIT_FAILURE);
+                    }
                     avg_permutation_distance = get_value_in_interval(PERMUTATION_DISTANCE_LOW, PERMUTATION_DISTANCE_HIGH, i, INTERVALS);
 					break;
                 case AVG_VALUE_DISTANCE:
+                    if (!VALUE_DISTANCE_ACTIVE)
+                    {
+                        cout << "Value distance must be specified for it to be used in interval" << endl;
+                        exit(EXIT_FAILURE);
+                    }
                     avg_value_distance = get_value_in_interval(VALUE_DISTANCE_LOW, VALUE_DISTANCE_HIGH, i, INTERVALS);
 					break;
                 case M_OVER_N:
+                    if (!M_OVER_N_RATIO_ACTIVE)
+                    {
+                        cout << "M / N ratio must be specified for it to be used in interval" << endl;
+                        exit(EXIT_FAILURE);
+                    }
                     m_over_n = get_value_in_interval(M_OVER_N_RATIO_LOW, M_OVER_N_RATIO_HIGH, i, INTERVALS);
 					break;
                 case BUDGET_USED_PERCENT:
+                    if (!BUDGET_USED_PERCENT_HIGH)
+                    {
+                        cout << "Budget percent must be specified for it to be used in interval" << endl;
+                        exit(EXIT_FAILURE);
+                    }
                     budget_used_percent = get_value_in_interval(BUDGET_USED_PERCENT_LOW, BUDGET_USED_PERCENT_HIGH, i, INTERVALS);
 					break;
                 default:
