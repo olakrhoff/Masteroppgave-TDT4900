@@ -86,6 +86,8 @@ Usage: ```generate_dataset -o <output_filepath> -a <from>:<to>  -g <from>:<to> -
   * Example: ```-p 40:60``` this gives the interval from 40% of max avg. distance to 60%. The values have to be in the interval of [0, 100]
 * -v
   * Average value distance.
+  * * Format: ```-v <from>:<to>``` the values are integers for the ratio
+  * Example: ```-v 40:60``` this gives the interval from 40% of max avg. distance to 60%. The values have to be in the interval of [0, 100]
 * -r
   * M over N ratio.
   * Format: ```-r <from>:<to>``` the values are integers for the ratio
