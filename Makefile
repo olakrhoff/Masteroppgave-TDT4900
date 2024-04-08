@@ -44,7 +44,8 @@ sim: build
 	python3 src/analysis.py 
 
 gen: build
-	./src/bin/generate_dataset -a 5:5 -g 6:6 -d wnbn -v 0:100 -o data/intervals/values/small.txt -i v5
+	#./src/bin/generate_dataset -a 5:5 -g 6:6 -d wnbn -v 0:100 -o data/intervals/values/small.txt -i v5
+	./generate_data_script.sh
 
 execute: build
 		./src/bin/generate_dataset # Generate the dataset

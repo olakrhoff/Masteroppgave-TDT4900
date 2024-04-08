@@ -268,10 +268,15 @@ void validate_options()
         exit(EXIT_FAILURE);
     }
 
-    if (!NUMBER_OF_GOODS_ACTIVE)
+    if (!NUMBER_OF_GOODS_ACTIVE && !M_OVER_N_RATIO_ACTIVE)
     {
         cout << "Number of goods must be spescified and >0: -g <number>:<number>" << endl;
         exit(EXIT_FAILURE);
+    }
+
+    if (M_OVER_N_RATIO_ACTIVE && NUMBER_OF_GOODS_ACTIVE)
+    {
+        cout << "Number of goods is given as an argument, but will be overridden by the ratio" << endl;
     }
 
     if (NUMBER_OF_GOODS_HIGH < NUMBER_OF_GOODS_LOW)
@@ -294,8 +299,8 @@ void validate_options()
 
     if (VALUE_DISTANCE_ACTIVE && VALUE_DISTRIBUTION_ACTIVE)
     {
-        cout << "You can not specify a value distribution when avg. value distance is active." << endl;
-        exit(EXIT_FAILURE);
+        cout << "You can not specify a value distribution when avg. value distance is active. The distribution will be ignored" << endl;
+        VALUE_DISTRIBUTION_ACTIVE = false;
     }
 
     if (PERMUTATION_DISTANCE_ACTIVE && 
@@ -609,9 +614,12 @@ string get_path_to_folder(const string &filepath)
 
 void create_folder_recursive(const string &folder_path)
 {
+    if (filesystem::exists(folder_path))
+        return;
+
     if (folder_path.find('/') != folder_path.npos)
     {
-        create_folder_recursive(folder_path.substr(0, folder_path.find('/')));
+        create_folder_recursive(folder_path.substr(0, folder_path.find_last_of('/')));
     }
     filesystem::create_directory(folder_path);
 }
@@ -627,6 +635,11 @@ void write_data_to_file(const dataset_t &data)
         try
         {
             create_folder_recursive(folder_path);
+        }
+        catch (exception e)
+        {
+            cout << "Could not create folder path: " << folder_path << " " << e.what() << endl;
+            exit(EXIT_FAILURE);
         }
         catch (...)
         {
