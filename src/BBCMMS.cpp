@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
+#include <numeric>
 #include <vector>
 #include <algorithm>
 #include <random>
@@ -479,6 +480,17 @@ typedef struct state
         return allocation.get_agents_weight(agent_index);
     }
 
+    double get_agents_value(const uint64_t agent_index, agent_t &agent)
+    {
+        auto goods = allocation.get_goods_allocated_to_agent(agent_index);
+        double val {0.0};
+
+        for (auto good_idx : goods)
+            val += agent.goods.at(good_idx).value;
+
+        return val;
+    }
+    
     uint64_t get_goods_allocated() const
     {
         return num_goods_allocated;
@@ -733,6 +745,9 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
     state_stack.push(start_state);
 
     state_t best_solution_yet = start_state;
+
+    double proportional_value = (double)accumulate(agent.goods.begin(), agent.goods.end(), 0) / num_agents;
+
     while (!state_stack.empty())
     {
         auto current_state = state_stack.top();
@@ -784,6 +799,11 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
                     <= agent.capacity)
             {
                 new_state.allocate_good_to_agent(new_good, i, weights.at(new_good));
+                // If an agent gets more than the proportional share there will
+                // exists an agent which gets less, thus there is no point in
+                // exploring this case
+                if (new_state.get_agents_value(i, agents.at(i)) > proportional_value)
+                    continue;
                 state_stack.push(new_state);
             }
         }
@@ -1092,7 +1112,8 @@ pair<allocation_t, double> BBCMMS(const vector<agent_t> &agents,
 
     state_t best_solution_yet = start_state;
     // It is proven that the BSIMMS has at least a 1/3-MMS solution 
-    double value_of_best_solution {0.333};
+    // It has been proven by Halvard Hummel, just now, that 1/2-MMS exists
+    double value_of_best_solution {0.5};
     while (!state_stack.empty())
     {
         nodes_visited++;
