@@ -63,17 +63,56 @@ uint64_t x_axis_lower_bound {}, x_axis_upper_bound {1};
 bool RUN_SINGLE_X {true};
 OPTION_Y_T y_axis_option {TIME};
 int UPPER_BOUND_MIN_LIMIT {7};
-PICKING_ORDERS_T PICKING_ORDER {RANDOM};
-bool REVERSE_PICKING_ORDER {false};
 bool EXPORT_RESULT {false};
+bool DATA_WRITE_ACTICE {false};
 
-typedef struct OPTIONS
+typedef struct options
 {
-    bool UPPER_BOUND {false};
-    bool BOUND_AND_BOUND {false};
-} OPTIONS_T;
+    bool upper_bound {false};
+    bool bound_and_bound {false};
+    PICKING_ORDERS_T picking_order {RANDOM};
+    bool reverse_picking_order {false};
+} options_t;
 
-OPTIONS_T OPTIONS {};
+typedef struct attributes
+{
+    uint64_t number_of_agents {};
+    uint64_t number_of_goods {};
+    double avg_permutation_distance {};
+    double avg_value_distance {};
+    double m_over_n {};
+    double budget_cap_percent {};
+} attributes_t;
+
+attributes_t ATTRIBUTES {};
+
+typedef struct configurations
+{ 
+    attributes_t attributes;
+    options_t options;
+    uint64_t time;
+
+    friend ostream& operator<<(ostream &os, const configurations &config)
+    {
+        os << config.attributes.number_of_agents << ", "
+           << config.attributes.number_of_goods << ", "
+           << config.attributes.m_over_n << ", "
+           << config.attributes.avg_permutation_distance << ", "
+           << config.attributes.avg_value_distance << ", "
+           // Work on this
+           << config.attributes.budget_cap_percent << ", "
+           << config.options.upper_bound << ", "
+           << config.options.bound_and_bound << ", "
+           << config.time
+           << endl;
+
+        return os;
+    }
+
+} configurations_t;
+
+configurations_t CONFIGURATION {};
+
 /**
  * This function handles all the options sent into the program.
  * It sets flags for optimisations that are enabled and what type of output
@@ -119,25 +158,25 @@ void handle_options(int argc, char **argv)
                 EXPORT_RESULT = true;
                 break;
             case 'r':
-                REVERSE_PICKING_ORDER = true;
+                CONFIGURATION.options.reverse_picking_order = true;
                 break;
             case 'p':
                 switch (*optarg)
                 {
                     case 'r':
-                        PICKING_ORDER = RANDOM;
+                        CONFIGURATION.options.picking_order = RANDOM;
                         break;
                     case 'n':
-                        PICKING_ORDER = NASH;
+                        CONFIGURATION.options.picking_order = NASH;
                         break;
                     case 'v':
-                        PICKING_ORDER = MAX_VALUE;
+                        CONFIGURATION.options.picking_order = MAX_VALUE;
                         break;
                     case 'w':
-                        PICKING_ORDER = MAX_WEIGHT;
+                        CONFIGURATION.options.picking_order = MAX_WEIGHT;
                         break;
                     case 'p':
-                        PICKING_ORDER = MAX_PROFIT;
+                        CONFIGURATION.options.picking_order = MAX_PROFIT;
                         break;
                     default:
                         cout << "Picking order arguement: '" << optarg << "' is not recognised" << endl;
@@ -145,14 +184,15 @@ void handle_options(int argc, char **argv)
                 }
                 break;
             case 'b':
-                OPTIONS.UPPER_BOUND = true;
-                OPTIONS.BOUND_AND_BOUND = true;
+                CONFIGURATION.options.upper_bound = true;
+                CONFIGURATION.options.bound_and_bound = true;
                 UPPER_BOUND_MIN_LIMIT = 6;
                 break;
             case 'u':
-                OPTIONS.UPPER_BOUND = true;
+                CONFIGURATION.options.upper_bound = true;
                 break;
             case 'o':
+                DATA_WRITE_ACTICE = true;
                 data_out_filepath = optarg; 
                 break;
             case 'd':
@@ -206,21 +246,11 @@ void handle_options(int argc, char **argv)
     }
 }
 
-typedef struct attributes
-{
-    uint64_t number_of_agents {};
-    uint64_t number_of_goods {};
-    double avg_permutation_distance {};
-    double avg_value_distance {};
-    double m_over_n {};
-} attributes_t;
-
-attributes_t ATTRIBUTES {};
 
 void write_data_to_file(const vector<uint64_t> &times)
 {
     ofstream file;
-    
+
     switch (x_axis_option)
     {
         case GOODS:
@@ -244,34 +274,37 @@ void write_data_to_file(const vector<uint64_t> &times)
             break;
     }
 
-    if (OPTIONS.UPPER_BOUND)
+    if (CONFIGURATION.options.upper_bound)
         data_out_filepath += "_UPPER_BOUND";
-    if (OPTIONS.BOUND_AND_BOUND)
+    if (CONFIGURATION.options.bound_and_bound)
         data_out_filepath += "_BOUND_AND_BOUND";
 
     data_out_filepath += ".txt";
 
-    file.open(data_out_filepath);
-    if (!file.is_open())
+    if (DATA_WRITE_ACTICE)
     {
-        cout << "Could not open file: " << data_out_filepath << endl;
-        exit(EXIT_FAILURE);
+        file.open(data_out_filepath);
+        if (!file.is_open())
+        {
+            cout << "Could not open file: " << data_out_filepath << endl;
+            exit(EXIT_FAILURE);
+        }
+
+
+        //Write the timestamp for each of the instances
+        //TODO: extend such that we run multiple instances for each case
+        for (int i = 0; i < (int)times.size(); ++i)
+        {
+            // Write all optimisations that is turned on
+            //TODO
+            file << ": ";
+            //Write AGENTS, GOODS, RUNS, NODES:
+            file << "3, " << i + x_axis_lower_bound << ", 1, 0: ";
+            file << times.at(i) << endl;
+        }
+
+        file.close();
     }
-
-
-    //Write the timestamp for each of the instances
-    //TODO: extend such that we run multiple instances for each case
-    for (int i = 0; i < (int)times.size(); ++i)
-    {
-        // Write all optimisations that is turned on
-        //TODO
-        file << ": ";
-        //Write AGENTS, GOODS, RUNS, NODES:
-        file << "3, " << i + x_axis_lower_bound << ", 1, 0: ";
-        file << times.at(i) << endl;
-    }
-
-    file.close();
 
     if (EXPORT_RESULT)
     {
@@ -283,7 +316,10 @@ void write_data_to_file(const vector<uint64_t> &times)
 
         // TODO: We need to add the attribute values and which optimisations 
         // are active and of course the result of the running
-        file << "N, M, M/N, AVG_PERM_DIST, AVG_VAL_DIST, BUDGET/SIZE";
+        // Format: "N, M, M/N, AVG_PERM_DIST, AVG_VAL_DIST, BUDGET/SIZE, TIME"
+
+        file << CONFIGURATION;
+
         file.close();
     }
 }
@@ -576,7 +612,7 @@ tuple<double, double, state_t, bool> upper_bound(vector<agent_t> agents, vector<
     double lower_bound {-1};
 
     // --- HANDLE LOWER BOUND ---
-    if (OPTIONS.BOUND_AND_BOUND)
+    if (CONFIGURATION.options.bound_and_bound)
     {
         // The entire premis of the lower bound is to make the upper bound a
         // feasible solution which will then work as our lower bound
@@ -720,12 +756,12 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
         state_t state(num_goods * num_agents);
         bool bound {};
         // --- CHECK UPPER BOUND ---
-        if (OPTIONS.UPPER_BOUND && num_goods - current_state.get_goods_allocated() >= (uint64_t)UPPER_BOUND_MIN_LIMIT)
+        if (CONFIGURATION.options.upper_bound && num_goods - current_state.get_goods_allocated() >= (uint64_t)UPPER_BOUND_MIN_LIMIT)
         {
             tie(upper_bound, lower_bound, state, bound) = upper_bound_find_MMS(agent, weights, current_state);
             if (upper_bound <= value_of_best_solution)
                 continue; // If the upper bound is less than our best solution thus
-            if (OPTIONS.BOUND_AND_BOUND)
+            if (CONFIGURATION.options.bound_and_bound)
             {
                 if (bound || lower_bound > value_of_best_solution)
                 {
@@ -876,7 +912,7 @@ vector<uint64_t> get_picking_order(const vector<agent_t> &agents, const vector<w
     int num_agents = agents.size();
     vector<uint64_t> picking_order {};
 
-    switch (PICKING_ORDER)
+    switch (CONFIGURATION.options.picking_order)
     {
         case RANDOM: 
             {
@@ -976,12 +1012,12 @@ vector<uint64_t> get_picking_order(const vector<agent_t> &agents, const vector<w
                 break;
             }
        default: 
-            cout << "The handling of picking order is not implemented yet: " << PICKING_ORDER << endl;
+            cout << "The handling of picking order is not implemented yet: " << CONFIGURATION.options.picking_order << endl;
             exit(1);
     }
 
     // If we are suppose to reverse the order we do so
-    if (REVERSE_PICKING_ORDER)
+    if (CONFIGURATION.options.reverse_picking_order)
         reverse(picking_order.begin(), picking_order.end());
 
     return picking_order;
@@ -1079,7 +1115,7 @@ pair<allocation_t, double> BBCMMS(const vector<agent_t> &agents,
         }
 
         // --- CHECK UPPER BOUND ---
-        if (OPTIONS.UPPER_BOUND && num_goods - current_state.get_goods_allocated() >= (uint64_t)UPPER_BOUND_MIN_LIMIT)
+        if (CONFIGURATION.options.upper_bound && num_goods - current_state.get_goods_allocated() >= (uint64_t)UPPER_BOUND_MIN_LIMIT)
         {
             double upper_bound {}, lower_bound {};
             state_t state(num_goods * num_agents);
@@ -1088,7 +1124,7 @@ pair<allocation_t, double> BBCMMS(const vector<agent_t> &agents,
             if (upper_bound <= value_of_best_solution)
                 continue; // If the upper bound is less than our best solution thus
                           // far we infer that it can't become better
-            if (OPTIONS.BOUND_AND_BOUND)
+            if (CONFIGURATION.options.bound_and_bound)
             {
                 if (bound || lower_bound > value_of_best_solution)
                 {
