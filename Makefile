@@ -34,7 +34,7 @@ build:
 	$(CC) $(CFLAGS) $(SRC_FILES) -o $(CURDIR)/src/bin/BBCMMS $(LDFLAGS) $(INCLUDE_DIRS)
 	$(CC) $(CFLAGS) $(CURDIR)/src/test_LPSolver.cpp $(CURDIR)/src/LPSolver.cpp -o $(CURDIR)/src/bin/test_LPSolver $(LDFLAGS) $(INCLUDE_DIRS)
 
-# Need to be run to update the include paths such that the LSP reconises files
+# Need to be run to update the include paths such that the LSP recognises files
 fix:
 	bear -- make build
 
