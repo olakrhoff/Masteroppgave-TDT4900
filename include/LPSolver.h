@@ -25,5 +25,6 @@ typedef struct matrix
 } matrix_t;
 
 pair<double, vector<double>> solve_LP_simplex(vector<double> c, vector<vector<double>> A, vector<double> b, vector<pair<double, double>> bounds);
+pair<double, vector<double>> solve_ILP(vector<double> c, vector<vector<double>> A, vector<double> b, vector<pair<double, double>> bounds);
 
 double get_pos_inf(int num_varaiables);

@@ -77,6 +77,7 @@ typedef struct options
     bool reverse_goods_order {false};
     bool reverse_agents_order {false};
     bool non_naive {false};
+    bool mip_solver_active {false};
 } options_t;
 
 typedef struct attributes
@@ -135,6 +136,8 @@ configurations_t CONFIGURATION {};
  *
  * --- OPTIMISATIONS ---
  *
+ * -m (MIP_SOLVER_ACTIVE): actives the use of the MIP solver to just solve the ILP
+ *
  * -n (NON_NAIVE): allows a class of optimisations that are significant, but not
  *                 big enough to stand on their own.
  * -u (UPPER_BOUND): takes no argument, simply turns on opt. when given
@@ -161,10 +164,12 @@ configurations_t CONFIGURATION {};
 void handle_options(int argc, char **argv)
 {
     int code {};
-    while ((code = getopt(argc, argv, "d:o:x:y:ubp:r:en")) != -1)
+    while ((code = getopt(argc, argv, "d:o:x:y:ubp:r:enm")) != -1)
     {
         switch (code)
         {
+            case 'm':
+                CONFIGURATION.options.mip_solver_active = true;
             case 'n':
                 CONFIGURATION.options.non_naive = true;
             case 'e':
@@ -533,7 +538,7 @@ typedef struct state
         return allocation.get_agents_weight(agent_index);
     }
 
-    double get_agents_value(const uint64_t agent_index, agent_t &agent)
+    double get_agents_value(const uint64_t agent_index, const agent_t &agent)
     {
         auto goods = allocation.get_goods_allocated_to_agent(agent_index);
         double val {0.0};
@@ -584,15 +589,149 @@ double min_bundle(const allocation_t &allocation,
     double value = DBL_MAX;
     for (int agent_idx = 0; agent_idx < (int)allocation.get_number_of_agents(); ++agent_idx)
     {
-        double temp {};
+        double temp {0};
         for (auto good_idx : allocation.get_goods_allocated_to_agent(agent_idx))
             temp += valuation.at(agent_idx).goods.at(good_idx).value;
+
         if (temp < value)
             value = temp;
     }
     return value;
 }
 
+/**
+ * This function is only for use by other functions, it solves the ILP
+ * given to it
+ */
+pair<allocation_t, double> solve_MIP_simplex(const vector<agent_t> &agents, const vector<weight_t> &weights)
+{
+    int num_agents = (int)agents.size();
+    int num_goods = (int)weights.size();
+
+    auto num_variables = num_agents * num_goods + 1;
+ 
+    vector<double> c {};
+    for (int i = 0; i < (int)num_variables - 1; ++i)
+        c.emplace_back(0);
+    c.emplace_back(1);
+
+    vector<vector<double>> A {};
+    vector<double> zeros {};
+    for (int i = 0; i < (int)num_variables; ++i)
+        zeros.emplace_back(0);
+    
+    // Add all the budget constraints
+    for (int i = 0; i < (int)num_agents; ++i)
+    {
+        auto temp = zeros;
+
+        auto offset = i * num_goods;
+        for (int j = 0; j < (int)num_goods; ++j)
+            temp.at(j + offset) = weights.at(j);
+
+        A.emplace_back(temp);
+    }
+    // Add the negative normalised value and a one in z 
+    for (int i = 0; i < (int)num_agents; ++i)
+    {
+        auto temp = zeros;
+
+        auto offset = i * num_goods;
+        for (int j = 0; j < (int)num_goods; ++j)
+            temp.at(j + offset) = -agents.at(i).goods.at(j).value;
+        temp.back() = 1;
+
+        A.emplace_back(temp);
+    }
+    // Add constraints such that a good is only allocated at most once
+    for (int i = 0; i < (int)num_goods; ++i)
+    {
+        auto temp = zeros;
+        for (int j = 0; j < (int)num_agents; ++j)
+            temp.at((j * num_goods) + i) = 1;
+
+        A.emplace_back(temp);
+    }   
+    vector<double> b {};
+    // Add all the budgets to the b vector
+    for (int i = 0; i < (int)num_agents; ++i)
+    {
+        b.emplace_back(agents.at(i).capacity);
+    }
+    // Add equally many zeros
+    for (int i = 0; i < (int)num_agents; ++i)
+        b.emplace_back(0);
+    // Add equally many ones
+    for (int i = 0; i < (int)num_goods; ++i)
+        b.emplace_back(1);
+
+
+    vector<pair<double, double>> bounds {};
+    for (int i = 0; i < (int)num_variables - 1; ++i)
+        bounds.emplace_back(0, 1);
+    bounds.emplace_back(0, get_pos_inf(num_variables));
+
+    double MMS {};
+    vector<double> variables {};
+    tie(MMS, variables) = solve_ILP(c, A, b, bounds); 
+
+    state_t solved_state(num_agents);
+
+    for (int agent_idx = 0; agent_idx < num_agents; ++agent_idx)
+        for (int good_idx = 0; good_idx < num_goods; ++good_idx)
+            if (variables.at(agent_idx * num_goods + good_idx) == 1)
+                solved_state.allocate_good_to_agent(good_idx, agent_idx, weights.at(good_idx));
+
+    return {solved_state.get_allocation(), MMS};
+}
+
+vector<agent_t> mirror_agents(const vector<agent_t> &agents, const int agent_idx)
+{
+    vector<agent_t> mirror_agents {};
+
+    for (int i = 0; i < (int)agents.size(); ++i)
+        mirror_agents.emplace_back(agents.at(agent_idx));
+
+    return mirror_agents;
+}
+
+pair<allocation_t, double> solve_MIP(const vector<agent_t> &agents, const vector<weight_t> &weights)
+{
+    int num_agents = (int)agents.size();
+    int num_goods = (int)weights.size();
+
+    vector<double> agents_MMS {};
+    for (int agent_idx = 0; agent_idx < num_agents; ++agent_idx)
+    {
+        auto mirror_agent = mirror_agents(agents, agent_idx);
+        agents_MMS.emplace_back(solve_MIP_simplex(mirror_agent, weights).second);
+        cout << "Found MMS for agent " << agent_idx <<  ": " << agents_MMS.back() << endl;  
+
+        if (agents_MMS.back() == 0)
+        {
+            auto reduced_agents = agents;
+            reduced_agents.erase(reduced_agents.begin() + agent_idx);
+            return solve_MIP(reduced_agents, weights);
+        }
+    }
+
+    cout << "MMS found for all agents" << endl;
+
+    vector<agent_t> new_agents {};
+
+    for (int agent_idx = 0; agent_idx < (int)agents.size(); ++agent_idx)
+    {
+        new_agents.emplace_back(agents.at(agent_idx));
+        for (int good_idx = 0; good_idx < num_goods; ++good_idx)
+            new_agents.back().goods.at(good_idx).value /= agents_MMS.at(agent_idx);
+    }
+
+    allocation_t allocation(num_agents);
+    double alpha_MMS {};
+    tie(allocation, alpha_MMS) = solve_MIP_simplex(new_agents, weights); 
+
+    return {allocation, alpha_MMS};
+}
 
 tuple<double, double, state_t, bool> upper_bound(vector<agent_t> agents, vector<weight_t> weights,
                    const state_t &current_state)
@@ -801,7 +940,7 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
     state_t best_solution_yet = start_state;
 
     double proportional_value = (double)accumulate(agent.goods.begin(), agent.goods.end(), 0) / num_agents;
-
+    cout << "PROP: " << proportional_value << endl;
     while (!state_stack.empty())
     {
         auto current_state = state_stack.top();
@@ -820,6 +959,14 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
             }
             continue;
         }
+
+
+        // If an agent gets more than the proportional share there will
+        // exists an agent which gets less, thus there is no point in
+        // exploring this case
+        if (CONFIGURATION.options.non_naive)
+            if (current_state.get_agents_value(0, agent) > proportional_value)
+                continue;
 
         double upper_bound {}, lower_bound {};
         state_t state(num_goods * num_agents);
@@ -853,12 +1000,7 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
                     <= agent.capacity)
             {
                 new_state.allocate_good_to_agent(new_good, i, weights.at(new_good));
-                // If an agent gets more than the proportional share there will
-                // exists an agent which gets less, thus there is no point in
-                // exploring this case
-                if (CONFIGURATION.options.non_naive)
-                    if (new_state.get_agents_value(i, agents.at(i)) > proportional_value)
-                        continue;
+                
                 state_stack.push(new_state);
             }
         }
@@ -1500,8 +1642,11 @@ int main(int argc, char **argv)
         // the zero value of alpha-MMS values by reducing the instance, that
         // would give us the incorrect attributes for the instance
         find_attributes(agents, weights);
-        
-        tie(allocation, alpha_MMS) = BBCMMS(run_agents, run_weights);
+       
+        if (CONFIGURATION.options.mip_solver_active)
+            tie(allocation, alpha_MMS) = solve_MIP(run_agents, run_weights);
+        else
+            tie(allocation, alpha_MMS) = BBCMMS(run_agents, run_weights);
         
         auto end_time = chrono::high_resolution_clock::now();
         auto duration = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
