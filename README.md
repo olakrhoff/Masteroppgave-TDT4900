@@ -49,14 +49,19 @@ Usage: ```BBCMMS -d <input_filepath> -o <output_filepath> -x[from:to] <x_axis_da
 * -b
   * This argument turns on the bound and bound optimisation. This requires an upper bound to work so it turns on the -u argument as well. In short this checks if the lower bound is higher than the best solution thus far, if so we update our best solution thus far. Also if the bounds are tight (equal) we conclude the search for the node (instance) and prune the rest since we have implicitly gotten the answer.
 * -p
-  * This is the argument for the picking order of the goods. If this argument is not passed, the RANDOM picking order is default.
+  * This is the argument for the picking order of goods or agents. If this argument is not passed, the RANDOM picking order is default.
+  * Format: ```-p <g|a><order>```
   * r: RANDOM
   * n: NASH
   * v: MAX_VALUE
   * w: MAX_WEIGHT
   * p: MAX_PROFIT
+  * E.g: ```-p gn -p ap```
 * -r
-  * This arguments reverses the order of the picking order
+  * This arguments reverses the order of the picking order of either goods or agents
+  * g: GOODS
+  * a: AGENTS
+  * E.g. to reverese both orders: ```-r g -r a```
 #### Other
 * -e
   * This arguement makes it so that the results are written (exported) to the global results table. This is the table used for the generation of the decision tree.
