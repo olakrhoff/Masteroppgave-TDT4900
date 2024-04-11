@@ -52,9 +52,9 @@ execute: build
 		./src/bin/BBCMMS -d data/input_data_test.txt -o data/analysis -x g1:12 -u
 		python3 src/analysis.py # Run the analysis of the generated data
 
-run_bb: clean setup build
+run_bb: build
 #	./src/bin/BBCMMS -d data/intervals/N/small2.txt -o data/analysis_small -x g24:24 -u
-	./src/bin/BBCMMS -d data/intervals/M_over_N/large1.txt -o data/analysis_small -x g -u -b
+	./src/bin/BBCMMS -d data/intervals/values/small/bnvnwn/small0.txt -o data/analysis_small -u -b -p gn -p ap -r a
 
 analysis:
 	python3 src/analysis.py

@@ -71,8 +71,11 @@ typedef struct options
 {
     bool upper_bound {false};
     bool bound_and_bound {false};
-    PICKING_ORDERS_T picking_order {RANDOM};
-    bool reverse_picking_order {false};
+    PICKING_ORDERS_T goods_order {RANDOM};
+    PICKING_ORDERS_T agents_order {RANDOM};
+    bool reverse_goods_order {false};
+    bool reverse_agents_order {false};
+    bool non_naive {false};
 } options_t;
 
 typedef struct attributes
@@ -89,9 +92,9 @@ attributes_t ATTRIBUTES {};
 
 typedef struct configurations
 { 
-    attributes_t attributes;
-    options_t options;
-    uint64_t time;
+    attributes_t attributes {};
+    options_t options {};
+    uint64_t time {};
 
     friend ostream& operator<<(ostream &os, const configurations &config)
     {
@@ -131,18 +134,24 @@ configurations_t CONFIGURATION {};
  *
  * --- OPTIMISATIONS ---
  *
+ * -n (NON_NAIVE): allows a class of optimisations that are significant, but not
+ *                 big enough to stand on their own.
  * -u (UPPER_BOUND): takes no argument, simply turns on opt. when given
  * -b (BOUND_AND_BOUND): takes no argument, simply turns on opt. when given
  *                       this will turn on the UPPER_BOUND as well, since it
  *                       is required
- * -p (Picking Order): Selects a picking order, if not passed, RANDOM ís the
- *                     default choice.
+ * -p (Picking Order): Selects a picking order for goods or agents, if not
+ *                     passed, RANDOM ís the default choice.
+ *                     Format: -p <g|a><order>
  *                     r:  RANDOM
  *                     n:  NASH
  *                     v:  MAX_VALUE
  *                     w:  MAX_WEIGHT
  *                     p:  MAX_PROFIT
- * -r (Reverse picking order): No argument, reverses the picking order
+ * -r (Reverse picking order): No argument, reverses the picking order of goods
+ *                             or agents.
+ *                             g: GOODS
+ *                             a: AGENTS
  *
  * --- OTHER ---
  * 
@@ -151,37 +160,80 @@ configurations_t CONFIGURATION {};
 void handle_options(int argc, char **argv)
 {
     int code {};
-    while ((code = getopt(argc, argv, "d:o:x:y:ubp:re")) != -1)
+    while ((code = getopt(argc, argv, "d:o:x:y:ubp:r:e")) != -1)
     {
         switch (code)
         {
+            case 'n':
+                CONFIGURATION.options.non_naive = true;
             case 'e':
                 EXPORT_RESULT = true;
                 break;
             case 'r':
-                CONFIGURATION.options.reverse_picking_order = true;
+                {
+                    if (string(optarg).length() != 1)
+                    {
+                        cout << "Expecting one argument for -r. Expected 'g' or 'a'" << endl;
+                        exit(EXIT_FAILURE);
+                    }
+                    switch (*optarg)
+                    {
+                        case 'g':
+                            CONFIGURATION.options.reverse_goods_order = true;
+                            break;
+                        case 'a':
+                            CONFIGURATION.options.reverse_agents_order = true;
+                            break;
+                        default:
+                            cout << "Could not recognise value given for -r option: " << optarg << endl;
+                            exit(EXIT_FAILURE);
+                    }
+                }
                 break;
             case 'p':
-                switch (*optarg)
                 {
-                    case 'r':
-                        CONFIGURATION.options.picking_order = RANDOM;
-                        break;
-                    case 'n':
-                        CONFIGURATION.options.picking_order = NASH;
-                        break;
-                    case 'v':
-                        CONFIGURATION.options.picking_order = MAX_VALUE;
-                        break;
-                    case 'w':
-                        CONFIGURATION.options.picking_order = MAX_WEIGHT;
-                        break;
-                    case 'p':
-                        CONFIGURATION.options.picking_order = MAX_PROFIT;
-                        break;
-                    default:
-                        cout << "Picking order arguement: '" << optarg << "' is not recognised" << endl;
-                        exit(1);
+                    if (string(optarg).length() != 2)
+                    {
+                        cout << "Expect two arguements for -p, got: " << string(optarg).length() << endl;
+                        cout << "Use format: '-p <g|a><order>', e.g. '-p an' see documentation for overview of orders" << endl;
+                        exit(EXIT_FAILURE);
+                    }
+                    PICKING_ORDERS_T order;
+                    switch (*(optarg + 1))
+                    {
+                        case 'r':
+                            order = RANDOM;
+                            break;
+                        case 'n':
+                            order = NASH;
+                            break;
+                        case 'v':
+                            order = MAX_VALUE;
+                            break;
+                        case 'w':
+                            order = MAX_WEIGHT;
+                            break;
+                        case 'p':
+                            order = MAX_PROFIT;
+                            break;
+                        default:
+                            cout << "Picking order arguement: '" << optarg << "' is not recognised" << endl;
+                            exit(1);
+                    }
+
+                    switch (*optarg)
+                    {
+                        case 'g':
+                            CONFIGURATION.options.goods_order = order;
+                            break;
+                        case 'a':
+                            CONFIGURATION.options.agents_order = order;
+                            break;
+                        default:
+                            cout << "Could not recognise value given for -p option: " << optarg << endl;
+                            cout << "The first argument must be 'g' or 'a'" << endl;
+                            exit(EXIT_FAILURE);
+                    }
                 }
                 break;
             case 'b':
@@ -190,7 +242,7 @@ void handle_options(int argc, char **argv)
                 UPPER_BOUND_MIN_LIMIT = 6;
                 break;
             case 'u':
-                CONFIGURATION.options.upper_bound = true;
+                   CONFIGURATION.options.upper_bound = true;
                 break;
             case 'o':
                 DATA_WRITE_ACTICE = true;
@@ -722,23 +774,24 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
         agents.emplace_back(agent);
 
     double value_of_best_solution {};
-    /*
-     
-    vector<pair<good_t, weight_t>> goods {};
-    for (int i = 0; i < weights.size(); ++i)
-        goods.emplace_back(agent.goods.at(i), weights.at(i));
-
-    sort(goods.begin(), goods.end(), [](auto a, auto b){ return a.first.value > b.first.value; });
-    auto capacity {agent.capacity};
-    for (int i = num_agents - 1; i < goods.size(); i += num_agents)
+    
+    if (CONFIGURATION.options.non_naive)
     {
-        auto good {goods.at(i)};
-        if (capacity < good.second)
-            continue;
-        capacity -= good.second;
-        value_of_best_solution += good.first.value;
+        vector<pair<good_t, weight_t>> goods {};
+        for (int i = 0; i < (int)weights.size(); ++i)
+            goods.emplace_back(agent.goods.at(i), weights.at(i));
+
+        sort(goods.begin(), goods.end(), [](auto a, auto b){ return a.first.value > b.first.value; });
+        auto capacity {agent.capacity};
+        for (int i = num_agents - 1; i < (int)goods.size(); i += num_agents)
+        {
+            auto good {goods.at(i)};
+            if (capacity < good.second)
+                continue;
+            capacity -= good.second;
+            value_of_best_solution += good.first.value;
+        }
     }
-    */
 
     stack<state_t> state_stack {};
     state_t start_state(num_agents);
@@ -802,8 +855,9 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
                 // If an agent gets more than the proportional share there will
                 // exists an agent which gets less, thus there is no point in
                 // exploring this case
-                if (new_state.get_agents_value(i, agents.at(i)) > proportional_value)
-                    continue;
+                if (CONFIGURATION.options.non_naive)
+                    if (new_state.get_agents_value(i, agents.at(i)) > proportional_value)
+                        continue;
                 state_stack.push(new_state);
             }
         }
@@ -932,7 +986,7 @@ vector<uint64_t> get_picking_order(const vector<agent_t> &agents, const vector<w
     int num_agents = agents.size();
     vector<uint64_t> picking_order {};
 
-    switch (CONFIGURATION.options.picking_order)
+    switch (CONFIGURATION.options.goods_order)
     {
         case RANDOM: 
             {
@@ -1032,12 +1086,12 @@ vector<uint64_t> get_picking_order(const vector<agent_t> &agents, const vector<w
                 break;
             }
        default: 
-            cout << "The handling of picking order is not implemented yet: " << CONFIGURATION.options.picking_order << endl;
+            cout << "The handling of picking order is not implemented yet: " << CONFIGURATION.options.goods_order << endl;
             exit(1);
     }
 
     // If we are suppose to reverse the order we do so
-    if (CONFIGURATION.options.reverse_picking_order)
+    if (CONFIGURATION.options.reverse_goods_order)
         reverse(picking_order.begin(), picking_order.end());
 
     return picking_order;
@@ -1111,6 +1165,7 @@ pair<allocation_t, double> BBCMMS(const vector<agent_t> &agents,
     state_stack.push(start_state);
 
     state_t best_solution_yet = start_state;
+
     // It is proven that the BSIMMS has at least a 1/3-MMS solution 
     // It has been proven by Halvard Hummel, just now, that 1/2-MMS exists
     double value_of_best_solution {0.5};
@@ -1145,6 +1200,8 @@ pair<allocation_t, double> BBCMMS(const vector<agent_t> &agents,
             if (upper_bound <= value_of_best_solution)
                 continue; // If the upper bound is less than our best solution thus
                           // far we infer that it can't become better
+
+            // --- CHECK BOUND AND BOUND ---
             if (CONFIGURATION.options.bound_and_bound)
             {
                 if (bound || lower_bound > value_of_best_solution)
@@ -1193,7 +1250,6 @@ int main(int argc, char **argv)
     handle_options(argc, argv);
 
     cout << "Starting branch and bound for batch: " << data_in_filepath << endl;
-
 
     // Read in the file data
     ifstream file;
