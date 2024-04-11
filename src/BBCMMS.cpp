@@ -50,6 +50,7 @@ typedef enum OPTION_Y
 
 typedef enum PICKING_ORDERS
 {
+    NONE,
     RANDOM,
     NASH,
     MAX_VALUE,
@@ -71,8 +72,8 @@ typedef struct options
 {
     bool upper_bound {false};
     bool bound_and_bound {false};
-    PICKING_ORDERS_T goods_order {RANDOM};
-    PICKING_ORDERS_T agents_order {RANDOM};
+    PICKING_ORDERS_T goods_order {NONE};
+    PICKING_ORDERS_T agents_order {NONE};
     bool reverse_goods_order {false};
     bool reverse_agents_order {false};
     bool non_naive {false};
@@ -988,6 +989,17 @@ vector<uint64_t> get_picking_order(const vector<agent_t> &agents, const vector<w
 
     switch (CONFIGURATION.options.goods_order)
     {
+        case NONE:
+            {
+                static vector<uint64_t> none_order_goods {};
+
+                if (none_order_goods.empty())
+                    for (int i = 0; i < num_goods; ++i)
+                        none_order_goods.push_back(i);
+
+                picking_order = none_order_goods;
+            }
+            break;
         case RANDOM: 
             {
                 for (int i = 0; i < (int)num_goods; ++i)
@@ -1101,13 +1113,24 @@ vector<uint64_t> get_picking_order(const vector<agent_t> &agents, const vector<w
  * This function takes a state and orders the agents picking order based on a
  * criterion. The agents are orderer from least to most in agreement with the criterion.
  */
-vector<uint64_t> order_agents(const state_t &state, const vector<agent_t> &agents, const vector<weight_t> &weights)
+vector<uint64_t> get_agents_order(const state_t &state, const vector<agent_t> &agents, const vector<weight_t> &weights)
 {
     int num_agents = (int)agents.size();
     vector<uint64_t> picking_order {};
 
     switch (CONFIGURATION.options.agents_order)
     {
+        case NONE:
+            {
+                static vector<uint64_t> none_order_agents {};
+
+                if (none_order_agents.empty())
+                    for (int i = 0; i < (int)num_agents; ++i)
+                        none_order_agents.push_back(i);
+
+                picking_order = none_order_agents;
+            }
+            break;
         case RANDOM: 
             {
                 for (int i = 0; i < num_agents; ++i)
@@ -1297,11 +1320,8 @@ pair<allocation_t, double> BBCMMS(const vector<agent_t> &agents,
 
 
     // --- SETTING THE PICKING ORDER ---
-    vector<uint64_t> picking_order_goods {};
-    for (int i = 0; i < num_goods; ++i)
-        picking_order_goods.emplace_back(i);
-    if (CONFIGURATION.options.non_naive)
-        picking_order_goods = get_picking_order(agents, weights);
+
+    vector<uint64_t> picking_order_goods = get_picking_order(agents, weights);
 
 
     // --- HANDLE PREPROCESSING OF OPTIMISATIONS ---
@@ -1390,19 +1410,12 @@ pair<allocation_t, double> BBCMMS(const vector<agent_t> &agents,
         new_state.allocate_to_charity(new_good_index);
         state_stack.push(new_state);
         
-        if (CONFIGURATION.options.non_naive)
-        {
-            vector<uint64_t> agent_order = order_agents(current_state, agents, weights);
-            for (auto agent_idx : agent_order)
-                if (new_states.at(agent_idx).second)
-                    state_stack.push(new_states.at(agent_idx).first);
-        }
-        else
-        {
-            for (auto [state, valid] : new_states)
-                if (valid)
-                    state_stack.push(state);
-        }
+        vector<uint64_t> agent_order = get_agents_order(current_state, agents, weights);
+        for (auto agent_idx : agent_order)
+            if (new_states.at(agent_idx).second)
+                state_stack.push(new_states.at(agent_idx).first);
+
+        
     }
 
     double n = (double)num_agents + 1;
