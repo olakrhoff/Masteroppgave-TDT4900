@@ -54,7 +54,7 @@ execute: build
 
 run_bb: build
 #	./src/bin/BBCMMS -d data/intervals/N/small2.txt -o data/analysis_small -x g24:24 -u
-	./src/bin/BBCMMS -d data/intervals/values/small/bnvnwn/small0.txt -o data/analysis_small -u -b -p gn -p ap -r a
+	./src/bin/BBCMMS -d data/intervals/M/medium/bnvnwn/medium0.txt -o data/analysis_small -u -b -p gn -p an -n
 
 analysis:
 	python3 src/analysis.py

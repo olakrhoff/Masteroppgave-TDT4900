@@ -160,7 +160,7 @@ configurations_t CONFIGURATION {};
 void handle_options(int argc, char **argv)
 {
     int code {};
-    while ((code = getopt(argc, argv, "d:o:x:y:ubp:r:e")) != -1)
+    while ((code = getopt(argc, argv, "d:o:x:y:ubp:r:en")) != -1)
     {
         switch (code)
         {
@@ -218,7 +218,7 @@ void handle_options(int argc, char **argv)
                             break;
                         default:
                             cout << "Picking order arguement: '" << optarg << "' is not recognised" << endl;
-                            exit(1);
+                            exit(EXIT_FAILURE);
                     }
 
                     switch (*optarg)
@@ -1087,7 +1087,154 @@ vector<uint64_t> get_picking_order(const vector<agent_t> &agents, const vector<w
             }
        default: 
             cout << "The handling of picking order is not implemented yet: " << CONFIGURATION.options.goods_order << endl;
-            exit(1);
+            exit(EXIT_FAILURE);
+    }
+
+    // If we are suppose to reverse the order we do so
+    if (CONFIGURATION.options.reverse_goods_order)
+        reverse(picking_order.begin(), picking_order.end());
+
+    return picking_order;
+}
+
+/**
+ * This function takes a state and orders the agents picking order based on a
+ * criterion. The agents are orderer from least to most in agreement with the criterion.
+ */
+vector<uint64_t> order_agents(const state_t &state, const vector<agent_t> &agents, const vector<weight_t> &weights)
+{
+    int num_agents = (int)agents.size();
+    vector<uint64_t> picking_order {};
+
+    switch (CONFIGURATION.options.agents_order)
+    {
+        case RANDOM: 
+            {
+                for (int i = 0; i < num_agents; ++i)
+                    picking_order.push_back(i);
+
+                random_device rd;
+                mt19937 g(rd());
+                shuffle(picking_order.begin(), picking_order.end(), g);
+                break;
+            }
+        case NASH:
+            {
+                // The pair holds the nash score and the index of the agent
+                vector<pair<double, int>> ordering {};
+
+                for (int agent_idx = 0; agent_idx < num_agents; ++agent_idx)
+                {
+                    ordering.emplace_back(1, agent_idx);
+                    auto bundle = state.get_allocation().get_goods_allocated_to_agent(agent_idx);
+                    
+                    for (int agent_idx_inner = 0; agent_idx_inner < num_agents; ++agent_idx_inner)
+                    {
+                        double value_of_bundle {0};
+                        for (auto good_idx : bundle)
+                            value_of_bundle += agents.at(agent_idx_inner).goods.at(good_idx).value;
+
+                        ordering.back().first *= value_of_bundle;
+                    }
+                }
+
+                // Sort them from lowest to highest Nash score
+                sort(ordering.begin(), ordering.end(), [](auto a, auto b){ return a.first < b.first; });
+                for (auto [nash, idx] : ordering)
+                    picking_order.emplace_back(idx);
+                break;
+            }
+        case MAX_VALUE:
+            {
+                // Here we calculate the average value for each good and order
+                // them based on that.
+                // The pair holds the value and the index of the good
+                vector<pair<double, int>> ordering {};
+
+                for (int agent_idx = 0; agent_idx < num_agents; ++agent_idx)
+                {
+                    ordering.emplace_back(0, agent_idx);
+                    auto bundle = state.get_allocation().get_goods_allocated_to_agent(agent_idx);
+                    
+                    for (int agent_idx_inner = 0; agent_idx_inner < num_agents; ++agent_idx_inner)
+                    {
+                        double value_of_bundle {0};
+                        for (auto good_idx : bundle)
+                            value_of_bundle += agents.at(agent_idx_inner).goods.at(good_idx).value;
+
+                        ordering.back().first += value_of_bundle;
+                    }
+                    ordering.back().first /= num_agents;
+                }
+
+                // Sort them from lowest to highest Max score
+                sort(ordering.begin(), ordering.end(), [](auto a, auto b){ return a.first < b.first; });
+                for (auto [nash, idx] : ordering)
+                    picking_order.emplace_back(idx);
+
+                break;
+            }
+        case MAX_WEIGHT:
+            {
+                // The pair holds the weight and the index of the agent
+                vector<pair<double, int>> ordering {};
+                for (int agent_idx = 0; agent_idx < num_agents; ++agent_idx)
+                {
+                    ordering.emplace_back(0, agent_idx);
+                    auto bundle = state.get_allocation().get_goods_allocated_to_agent(agent_idx);
+                    
+                    for (auto good_idx : bundle)
+                        ordering.back().first += weights.at(good_idx);
+                }
+
+                // Sort them from lowest to highest weight
+                sort(ordering.begin(), ordering.end(), [](auto a, auto b){ return a.first < b.first; });
+                for (auto [nash, idx] : ordering)
+                    picking_order.emplace_back(idx);
+                
+                break;
+            }
+        case MAX_PROFIT:
+            {
+                // Here we calculate the average profit for each good and order
+                // them based on that.
+                // The pair holds the avg. profit and the index of the good
+                vector<pair<double, int>> ordering {};
+
+                for (int agent_idx = 0; agent_idx < num_agents; ++agent_idx)
+                {
+                    ordering.emplace_back(0, agent_idx);
+                    auto bundle = state.get_allocation().get_goods_allocated_to_agent(agent_idx);
+                    
+                    for (int agent_idx_inner = 0; agent_idx_inner < num_agents; ++agent_idx_inner)
+                    {
+                        double value_of_bundle {0};
+                        weight_t weight_of_bundle {};
+                        for (auto good_idx : bundle)
+                        {
+                            value_of_bundle += agents.at(agent_idx_inner).goods.at(good_idx).value;
+                            weight_of_bundle += weights.at(good_idx);
+                        }
+                        
+                        // Ensures that we don't get a divid by zero and that
+                        if (weight_of_bundle == 0)
+                            weight_of_bundle = 1;
+
+                        ordering.back().first += value_of_bundle / weight_of_bundle;
+                    }
+                    ordering.back().first /= num_agents;
+                }
+
+                // Sort them from lowest to highest Max score
+                sort(ordering.begin(), ordering.end(), [](auto a, auto b){ return a.first < b.first; });
+                for (auto [nash, idx] : ordering)
+                    picking_order.emplace_back(idx);
+                
+                break;
+            }
+       default: 
+            cout << "The handling of picking order is not implemented yet: " << CONFIGURATION.options.agents_order << endl;
+            exit(EXIT_FAILURE);
     }
 
     // If we are suppose to reverse the order we do so
@@ -1215,6 +1362,7 @@ pair<allocation_t, double> BBCMMS(const vector<agent_t> &agents,
         }
 
 
+        vector<pair<state_t, bool>> new_states {};
         // Loop over for each agent and add to the stack the state in which
         // the given agent gets the new good
         for (int i = 0; i < (int)agents.size(); ++i)
@@ -1225,15 +1373,32 @@ pair<allocation_t, double> BBCMMS(const vector<agent_t> &agents,
                     <= agents.at(i).capacity)
             {
                 new_state.allocate_good_to_agent(new_good_index, i, weights.at(new_good_index));
-                state_stack.push(new_state);
+                new_states.emplace_back(new_state, true);
             }
+            else
+                new_states.emplace_back(new_state, false);
         }
+        
         // Add the case where the good goes to charity as well, this needs to
-        // be taken into account
+        // be taken into account, we always push this one first, since we want to explore it last
         auto new_state = current_state;
         uint64_t new_good_index = current_state.get_goods_allocated();
         new_state.allocate_to_charity(new_good_index);
         state_stack.push(new_state);
+        
+        if (CONFIGURATION.options.non_naive)
+        {
+            vector<uint64_t> agent_order = order_agents(current_state, agents, weights);
+            for (auto agent_idx : agent_order)
+                if (new_states.at(agent_idx).second)
+                    state_stack.push(new_states.at(agent_idx).first);
+        }
+        else
+        {
+            for (auto [state, valid] : new_states)
+                if (valid)
+                    state_stack.push(state);
+        }
     }
 
     double n = (double)num_agents + 1;
