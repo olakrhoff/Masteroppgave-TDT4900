@@ -49,7 +49,7 @@ Usage: ```BBCMMS -d <input_filepath> -o <output_filepath> -x[from:to] <x_axis_da
 * -b
   * This argument turns on the bound and bound optimisation. This requires an upper bound to work so it turns on the -u argument as well. In short this checks if the lower bound is higher than the best solution thus far, if so we update our best solution thus far. Also if the bounds are tight (equal) we conclude the search for the node (instance) and prune the rest since we have implicitly gotten the answer.
 * -p
-  * This is the argument for the picking order of goods or agents. If this argument is not passed, the RANDOM picking order is default.
+  * This is the argument for the picking order of goods or agents. If this argument is not passed, the NONE picking order is default, meaning they will be picked in the order they appear in the dataset.
   * Format: ```-p <g|a><order>```
   * r: RANDOM
   * n: NASH
