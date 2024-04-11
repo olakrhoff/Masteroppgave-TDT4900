@@ -42,6 +42,8 @@ Usage: ```BBCMMS -d <input_filepath> -o <output_filepath> -x[from:to] <x_axis_da
   * This is the same as for the -x argument above, only for the y-axis for plotting.
 
 #### Optimisations
+* -n
+  * This argument turns on some non-naive optimisations and preprocessing. E.g. when finding MMS for an agent, if a bundle has more than its proportional share it does not need more, it can't be the bundle that gives the MMS for the agent, therefore, we don't need to check it. A preprocessing could be greedily filling the bundles to get an estimate of the MMS first, which could possibly help prune obviously bad paths.
 * -u
   * This argument turn on the upper bound optimisation. In short a LP solver is ran on each instance and if the upper bound of that instance is not higher than our best solution thus far, we prune the subproblem.
 * -b
