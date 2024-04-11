@@ -1238,7 +1238,7 @@ vector<uint64_t> order_agents(const state_t &state, const vector<agent_t> &agent
     }
 
     // If we are suppose to reverse the order we do so
-    if (CONFIGURATION.options.reverse_goods_order)
+    if (CONFIGURATION.options.reverse_agents_order)
         reverse(picking_order.begin(), picking_order.end());
 
     return picking_order;
@@ -1297,7 +1297,11 @@ pair<allocation_t, double> BBCMMS(const vector<agent_t> &agents,
 
 
     // --- SETTING THE PICKING ORDER ---
-    vector<uint64_t> picking_order_goods = get_picking_order(agents, weights);
+    vector<uint64_t> picking_order_goods {};
+    for (int i = 0; i < num_goods; ++i)
+        picking_order_goods.emplace_back(i);
+    if (CONFIGURATION.options.non_naive)
+        picking_order_goods = get_picking_order(agents, weights);
 
 
     // --- HANDLE PREPROCESSING OF OPTIMISATIONS ---

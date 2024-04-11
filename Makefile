@@ -39,8 +39,8 @@ fix:
 	bear -- make build
 
 sim: build
-	./src/bin/generate_dataset -a 3 -g 10 -o data/testing_shit.txt
-	./src/bin/BBCMMS -d data/testing_shit.txt -o data/analysis -x g1:15 -u -b
+	./src/bin/generate_dataset -a 3 -g 10 -o data/testing_stuff.txt
+	./src/bin/BBCMMS -d data/testing_stuff.txt -o data/analysis -x g1:15 -u -b
 	python3 src/analysis.py 
 
 gen: build
