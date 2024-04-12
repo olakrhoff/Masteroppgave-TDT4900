@@ -90,8 +90,6 @@ typedef struct attributes
     double budget_cap_percent {};
 } attributes_t;
 
-attributes_t ATTRIBUTES {};
-
 typedef struct configurations
 { 
     attributes_t attributes {};
@@ -100,15 +98,22 @@ typedef struct configurations
 
     friend ostream& operator<<(ostream &os, const configurations &config)
     {
-        os << config.attributes.number_of_agents << ", "
+        os << data_in_filepath << ", "
+           << config.attributes.number_of_agents << ", "
            << config.attributes.number_of_goods << ", "
            << config.attributes.m_over_n << ", "
            << config.attributes.avg_permutation_distance << ", "
            << config.attributes.avg_value_distance << ", "
-           // Work on this
            << config.attributes.budget_cap_percent << ", "
+           // Separating here for readability
            << config.options.upper_bound << ", "
            << config.options.bound_and_bound << ", "
+           << config.options.non_naive << ", "
+           << config.options.goods_order << ", "
+           << config.options.agents_order << ", "
+           << config.options.reverse_goods_order << ", "
+           << config.options.reverse_agents_order << ", "
+           << config.options.mip_solver_active << ", "
            << config.time
            << endl;
 
@@ -305,6 +310,53 @@ void handle_options(int argc, char **argv)
     }
 }
 
+void validate_options()
+{
+    if (CONFIGURATION.options.mip_solver_active)
+    {
+        bool other_conditions {false};
+        
+        if (CONFIGURATION.options.reverse_agents_order)
+        {
+            other_conditions = true;
+            CONFIGURATION.options.reverse_agents_order = false;
+        }
+
+        if (CONFIGURATION.options.reverse_goods_order)
+        {
+            other_conditions = true;
+            CONFIGURATION.options.reverse_goods_order = false;
+        }
+        if (CONFIGURATION.options.agents_order != PICKING_ORDERS_T::NONE)
+        {
+            other_conditions = true;
+            CONFIGURATION.options.agents_order = PICKING_ORDERS_T::NONE;
+        }
+        if (CONFIGURATION.options.goods_order != PICKING_ORDERS_T::NONE)
+        {
+            other_conditions = true;
+            CONFIGURATION.options.goods_order = PICKING_ORDERS_T::NONE;
+        }
+        if (CONFIGURATION.options.non_naive)
+        {
+            other_conditions = true;
+            CONFIGURATION.options.non_naive = false;
+        }
+        if (CONFIGURATION.options.upper_bound)
+        {
+            other_conditions = true;
+            CONFIGURATION.options.upper_bound = false;
+        }
+        if (CONFIGURATION.options.bound_and_bound)
+        {
+            other_conditions = true;
+            CONFIGURATION.options.bound_and_bound = false;
+        }
+
+        if (other_conditions)
+            cout << "When -m is active no other arguments for optimisations will be applied" << endl;
+    }
+}
 
 void write_data_to_file(const vector<uint64_t> &times)
 {
@@ -376,7 +428,7 @@ void write_data_to_file(const vector<uint64_t> &times)
         // TODO: We need to add the attribute values and which optimisations 
         // are active and of course the result of the running
         // Format: "N, M, M/N, AVG_PERM_DIST, AVG_VAL_DIST, BUDGET/SIZE, TIME"
-
+    
         file << CONFIGURATION;
 
         file.close();
@@ -400,6 +452,11 @@ typedef struct agent
 {
     vector<good_t> goods {};
     uint64_t capacity {};
+    
+    operator double() const
+    {
+        return (double)capacity;
+    }
 } agent_t;
 
 vector<weight_t> parse_line_to_weights(const string &line)
@@ -940,7 +997,7 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
     state_t best_solution_yet = start_state;
 
     double proportional_value = (double)accumulate(agent.goods.begin(), agent.goods.end(), 0) / num_agents;
-    cout << "PROP: " << proportional_value << endl;
+
     while (!state_stack.empty())
     {
         auto current_state = state_stack.top();
@@ -1060,36 +1117,80 @@ double find_avg_value_distance(const vector<agent_t> &agents)
     return sum_distance / num_distances;
 }
 
+vector<int> get_permutation(const agent_t &perm)
+{
+    int num_goods = (int)perm.goods.size();
+    vector<int> permutation(num_goods, -1);
+
+    auto vals = perm.goods;
+
+    for (int i = 0; i < num_goods; ++i)
+    {
+        int max_index = 0;
+        auto max_value = vals.at(max_index).value;
+        for (int j = 0; j < num_goods; ++j)
+        {
+            auto val = vals.at(j).value;
+            if (val > max_value)
+            {
+                max_value = val;
+                max_index = j;
+            }
+        }
+        permutation.at(max_index) = i;
+        vals.at(max_index).value = -1;
+    }
+
+    return permutation;
+}
+
+bool is_pair_in_order(const int left, const int right, const vector<int> &perm)
+{
+    bool left_found {false};
+
+    for (auto val : perm)
+    {
+        if (!left_found)
+        {
+            if (val == left)
+                left_found = true;
+        }
+        else
+        {
+            if (val == right)
+                return true;
+        }
+    }
+
+    return false;
+}
+
 /**
- * This calculates the Euclidean distance between two permutations
+ * This calculates the Kendall Tau distance between two permutations
  */
 double permutation_distance(const agent_t &perm_a, const agent_t &perm_b)
 {
-    // value-index pair
-    vector<pair<double, int>> list {};
-    for (int i = 0; i < (int)perm_a.goods.size(); ++i)
-        list.emplace_back(perm_a.goods.at(i).value, i);
-    sort(list.begin(), list.end(), [](auto a, auto b){ return a.first < b.first; });
+    int num_goods = (int)perm_a.goods.size();
+    bool perm_a_ordered {false}, perm_b_ordered {false};
 
-    vector<int> index_a {};
-    for (auto [val, index] : list)
-        index_a.emplace_back(index);
+    vector<int> permutation_a = get_permutation(perm_a);
+    vector<int> permutation_b = get_permutation(perm_b);
 
-    list = {};
-    for (int i = 0; i < (int)perm_b.goods.size(); ++i)
-        list.emplace_back(perm_b.goods.at(i).value, i);
-    sort(list.begin(), list.end(), [](auto a, auto b){ return a.first < b.first; });
+    double kendall_tau {};
+    for (int i = 0; i < num_goods; ++i)
+    {
+        for (int j = i + 1; j < num_goods; ++j)
+        {
+            // We now have a pair <i, j>
+            perm_a_ordered = is_pair_in_order(i, j, permutation_a);
+            perm_b_ordered = is_pair_in_order(i, j, permutation_b);
 
-    vector<int> index_b {};
-    for (auto [val, index] : list)
-        index_b.emplace_back(index);
+            if (perm_a_ordered != perm_b_ordered)
+                kendall_tau++;
+        }
+    }
 
-    // Find the Euclidean distance between the permutations
-    
-    // Get the difference between the vectors
-    transform(index_a.begin(), index_a.end(), index_b.begin(), index_a.begin(), [](double a, double b){ return a - b; });
-    
-    return euclidean_distance(index_a);
+    return kendall_tau;
 }
 
 double find_avg_permutation_distance(const vector<agent_t> &agents) 
@@ -1101,8 +1202,26 @@ double find_avg_permutation_distance(const vector<agent_t> &agents)
     
     double n = agents.size();
     double num_distances = (n * (n - 1)) / 2; // Just some maths to explicitly find the number of pairs
-
+                                              
     return sum_distance / num_distances;
+}
+
+
+
+double get_budget_cap_percent(const vector<agent_t> &agents, const vector<weight_t> &weights)
+{
+    auto myFunc = [](agent_t a, agent_t b)
+    {
+        agent_t t;
+        t.capacity = a.capacity + b.capacity;
+        return t;
+    };
+
+
+    double total_weight = accumulate(weights.begin(), weights.end(), 0);
+    double total_budget = accumulate(agents.begin(), agents.end(), agent_t(), myFunc).capacity;
+
+    return total_weight / total_budget;
 }
 
 /**
@@ -1112,11 +1231,12 @@ double find_avg_permutation_distance(const vector<agent_t> &agents)
  */
 void find_attributes(const vector<agent_t> &agents, const vector<weight_t> &weights)
 {
-   ATTRIBUTES.m_over_n = (double)weights.size() / (double)agents.size();
-   ATTRIBUTES.number_of_goods = (uint64_t)weights.size();
-   ATTRIBUTES.number_of_agents = (uint64_t)agents.size();
-   ATTRIBUTES.avg_value_distance = find_avg_value_distance(agents);
-   ATTRIBUTES.avg_permutation_distance = find_avg_permutation_distance(agents);
+   CONFIGURATION.attributes.m_over_n = (double)weights.size() / (double)agents.size();
+   CONFIGURATION.attributes.number_of_goods = (uint64_t)weights.size();
+   CONFIGURATION.attributes.number_of_agents = (uint64_t)agents.size();
+   CONFIGURATION.attributes.avg_value_distance = find_avg_value_distance(agents);
+   CONFIGURATION.attributes.avg_permutation_distance = find_avg_permutation_distance(agents);
+   CONFIGURATION.attributes.budget_cap_percent = get_budget_cap_percent(agents, weights);
 }
 
 /*
@@ -1573,6 +1693,8 @@ int main(int argc, char **argv)
 {
     handle_options(argc, argv);
 
+    validate_options();
+
     cout << "Starting branch and bound for batch: " << data_in_filepath << endl;
 
     // Read in the file data
@@ -1666,6 +1788,7 @@ int main(int argc, char **argv)
         cout << "Time: " << duration.count() / 1000 << " ms" << endl;
 
         times.emplace_back(duration.count());
+        CONFIGURATION.time = duration.count();
     }
 
     

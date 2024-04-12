@@ -19,7 +19,7 @@ OBJ_FILES = $(SRC_FILES:.cpp=.o)
 
 CURDIR = '$(PWD)'
 
-.PHONY: setup run clean execute build analysis run_bb tree test fix gen
+.PHONY: setup run clean execute build analysis run_bb tree test fix gen format_data
 
 run: setup clean execute
 
@@ -56,7 +56,7 @@ execute: build
 
 run_bb: build
 #	./src/bin/BBCMMS -d data/intervals/N/small2.txt -o data/analysis_small -x g24:24 -u
-	./src/bin/BBCMMS -d data/intervals/M/big/bnvnwn/big4.txt -o data/analysis_small -u -b -n -m
+	./src/bin/BBCMMS -d data/intervals/M/small/bnvnwn/small2.txt -o data/analysis_small -e -u -b -n -p gn -p ap
 
 analysis:
 	python3 src/analysis.py
@@ -68,3 +68,6 @@ test: setup build
 	./src/bin/test_LPSolver
 	./src/bin/BBCMMS -d data/negative_proof_39_40.txt -o data/analysis -x g9:9 -u -b -e
 	python3 src/decision_tree.py test
+
+format_data: 
+	sed 's/,/,:/g' data/global_results.txt | column -t -s: | sed 's/ ,/,/g' > data/global_results_formated.txt
