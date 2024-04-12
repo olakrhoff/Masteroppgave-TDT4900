@@ -396,14 +396,14 @@ uint64_t get_value_for_good()
  *  This function is used to generate a random value in an interval drawn from
  *  a uniform distribution.
  */
-int get_random_number_from_interval(int lower_bound, int upper_bound)
+double get_random_number_from_interval(double lower_bound, double upper_bound)
 {
     random_device rd;
     mt19937 generator(rd());
 
-    uniform_int_distribution<> distribution(lower_bound, upper_bound);
+    uniform_int_distribution<> distribution(lower_bound * 100, upper_bound * 100);
 
-    return distribution(generator);
+    return (double)distribution(generator) / 100;
 }
 
 /**
@@ -838,11 +838,11 @@ int main(int argc, char **argv)
             }
 
             dataset_t data = generate_data(number_of_goods,
-                                                number_of_agents,
-                                                avg_permutation_distance,
-                                                avg_value_distance,
-                                                m_over_n,
-                                                budget_used_percent);
+                                           number_of_agents,
+                                           avg_permutation_distance,
+                                           avg_value_distance,
+                                           m_over_n,
+                                           budget_used_percent);
             write_data_to_file(data);
             FILE_OUTPUT_PATH = temp_name;
         }
