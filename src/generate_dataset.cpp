@@ -165,6 +165,8 @@ void handle_options(int argc, char **argv)
                 {
                     string temp = optarg;
                     tie(BUDGET_USED_PERCENT_LOW, BUDGET_USED_PERCENT_HIGH) = get_interval(temp);
+                    BUDGET_USED_PERCENT_LOW /= 100;
+                    BUDGET_USED_PERCENT_HIGH /= 100;
                     BUDGET_USED_PERCENT_ACTIVE = true;
                     break;
                 }
@@ -713,14 +715,14 @@ void write_data_to_file(const dataset_t &data)
  * step 0 we get the lower bound and at step 'number_of_iterations' we get
  * the upper bound
  */
-double get_value_in_interval(int lower_bound, int upper_bound, int iteration, int number_of_iterations)
+double get_value_in_interval(double lower_bound, double upper_bound, int iteration, int number_of_iterations)
 {
     if (number_of_iterations < 2)
     {
         cout << "Expect at least two iterations in an interval" << endl;
         exit(EXIT_FAILURE);
     }
-    double diff = (double)(upper_bound - lower_bound);
+    double diff = upper_bound - lower_bound;
 
     double val_per_itr = diff / (number_of_iterations - 1);
 
@@ -823,7 +825,7 @@ int main(int argc, char **argv)
                     m_over_n = get_value_in_interval(M_OVER_N_RATIO_LOW, M_OVER_N_RATIO_HIGH, i, INTERVALS);
 					break;
                 case BUDGET_USED_PERCENT:
-                    if (!BUDGET_USED_PERCENT_HIGH)
+                    if (!BUDGET_USED_PERCENT_ACTIVE)
                     {
                         cout << "Budget percent must be specified for it to be used in interval" << endl;
                         exit(EXIT_FAILURE);

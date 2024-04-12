@@ -45,7 +45,9 @@ sim: build
 
 gen: build
 	#./src/bin/generate_dataset -a 5:5 -g 6:6 -d wnbn -v 0:100 -o data/intervals/values/small.txt -i v5
+	#src/bin/generate_dataset -o data/testing.txt   -a 2:4 -r 1:3 -b 50:250 -i b5
 	./generate_data_script.sh
+
 
 execute: build
 		./src/bin/generate_dataset # Generate the dataset
