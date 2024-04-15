@@ -60,6 +60,7 @@ typedef enum PICKING_ORDERS
 
 string data_in_filepath;
 string data_out_filepath = "data/analysis";
+string RESULTS_EXPORT_PATH = GLOBAL_RESULTS_FILEPATH;
 OPTION_X_T x_axis_option {GOODS};
 uint64_t x_axis_lower_bound {}, x_axis_upper_bound {1}; 
 bool RUN_SINGLE_X {true};
@@ -164,12 +165,13 @@ configurations_t CONFIGURATION {};
  *
  * --- OTHER ---
  * 
- * -e (export results): writes results to the global file of results
+ * -e (export results): writes results to the global file of results. Might take
+ *                      an argument for the filepath to where to store the data.
  */
 void handle_options(int argc, char **argv)
 {
     int code {};
-    while ((code = getopt(argc, argv, "d:o:x:y:ubp:r:enm")) != -1)
+    while ((code = getopt(argc, argv, "d:o:x:y:ubp:r:e::nm")) != -1)
     {
         switch (code)
         {
@@ -179,6 +181,8 @@ void handle_options(int argc, char **argv)
                 CONFIGURATION.options.non_naive = true;
             case 'e':
                 EXPORT_RESULT = true;
+                if (optind < argc && *argv[optind] != '-')
+                        RESULTS_EXPORT_PATH = string(argv[optind]);
                 break;
             case 'r':
                 {
@@ -312,6 +316,12 @@ void handle_options(int argc, char **argv)
 
 void validate_options()
 {
+    if (data_in_filepath.empty())
+    {
+        cout << "To run the program you need to pass a data file with the -d <filepath> option" << endl;
+        exit(EXIT_FAILURE);
+    }
+
     if (CONFIGURATION.options.mip_solver_active)
     {
         bool other_conditions {false};
@@ -394,6 +404,7 @@ void write_data_to_file(const vector<uint64_t> &times)
 
     if (DATA_WRITE_ACTICE)
     {
+        cout << "SADSLKDØAS D" << endl;
         file.open(data_out_filepath);
         if (!file.is_open())
         {
@@ -423,7 +434,13 @@ void write_data_to_file(const vector<uint64_t> &times)
         // the file path is stored in the types.h file. We don't want to 
         // overwrite the data in the file so we will have to append the data
         // to the end of the file instead
-        file.open(GLOBAL_RESULTS_FILEPATH, ios::out | ios::app);
+        file.open(RESULTS_EXPORT_PATH, ios::out | ios::app);
+
+        if (!file.is_open())
+        {
+            cout << "Could not open file to export data to: " << RESULTS_EXPORT_PATH << endl;
+            exit(EXIT_FAILURE);
+        }
 
         // TODO: We need to add the attribute values and which optimisations 
         // are active and of course the result of the running
