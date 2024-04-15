@@ -114,7 +114,7 @@ typedef struct configurations
            << config.options.agents_order << ", "
            << config.options.reverse_goods_order << ", "
            << config.options.reverse_agents_order << ", "
-           << config.options.mip_solver_active << ", "
+           << (config.options.mip_solver_active ? "1" : "0") << ", "
            << config.time
            << endl;
 
@@ -177,12 +177,17 @@ void handle_options(int argc, char **argv)
         {
             case 'm':
                 CONFIGURATION.options.mip_solver_active = true;
+                break;
             case 'n':
                 CONFIGURATION.options.non_naive = true;
+                break;
             case 'e':
                 EXPORT_RESULT = true;
                 if (optind < argc && *argv[optind] != '-')
-                        RESULTS_EXPORT_PATH = string(argv[optind]);
+                {
+                    RESULTS_EXPORT_PATH = string(argv[optind]);
+                    optind++;
+                }
                 break;
             case 'r':
                 {
