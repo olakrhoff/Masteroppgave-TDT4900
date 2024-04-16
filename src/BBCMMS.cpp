@@ -170,6 +170,9 @@ configurations_t CONFIGURATION {};
  */
 void handle_options(int argc, char **argv)
 {
+    for (int i = 1; i < argc; ++i)
+        cout << argv[i] << " : ";
+    cout << endl;
     int code {};
     while ((code = getopt(argc, argv, "d:o:x:y:ubp:r:e::nm")) != -1)
     {

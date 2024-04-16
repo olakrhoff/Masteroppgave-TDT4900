@@ -24,7 +24,7 @@ CURDIR = '$(PWD)'
 run: setup clean execute
 
 setup:
-	mkdir -p plots data src/bin
+	mkdir -p plots data data/results src/bin
 
 clean:  
 	rm -rf $(CURDIR)/src/bin/*
@@ -56,7 +56,8 @@ execute: build
 
 run_bb: build
 #	./src/bin/BBCMMS -d data/intervals/N/small2.txt -o data/analysis_small -x g24:24 -u
-	./src/bin/BBCMMS -d data/intervals/M/small/bnvnwn/small2.txt -o data/analysis_small -e -u -b -n -p gn -p ap
+#	./src/bin/BBCMMS -d data/intervals/M/small/bnvnwn/small2.txt -o data/analysis_small -e data/results/data1.txt -u -b -n -p gn -p ap
+	./src/bin/BBCMMS -d data/intervals/M/small/bnvnwn/small2.txt -e data/results/data1.txt -m
 
 analysis:
 	python3 src/analysis.py
