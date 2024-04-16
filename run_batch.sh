@@ -10,9 +10,18 @@ counter=$(find "data/results" -type f | wc -l)
 ((counter--))
 
 
-optimisations=(-m -n -u -b
-               -n\ -u -n\ -b)
+#optimisations=(-m -n -u -b -n\ -u -n\ -b)
 
+opt_filepath="optimisations.txt"
+
+optimistaions=()
+
+while IFS= read -r line; do
+    optimisations+=("$line")
+done < "$opt_filepath"
+
+# Print the array (optional)
+printf '%s\n' "${optimisations[@]}"
  
 find "$folder" -type f | while read -r file; do
     for opt in "${optimisations[@]}"; do

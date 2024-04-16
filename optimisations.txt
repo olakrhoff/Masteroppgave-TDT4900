@@ -1,0 +1,406 @@
+
+-m
+-n
+-u
+-b
+-u -p gr
+-u -p gn
+-u -p gv
+-u -p gw
+-u -p gp
+-u -p gn -r g
+-u -p gv -r g
+-u -p gw -r g
+-u -p gp -r g
+-b -p gr
+-b -p gn
+-b -p gv
+-b -p gw
+-b -p gp
+-b -p gn -r g
+-b -p gv -r g
+-b -p gw -r g
+-b -p gp -r g
+-u -p ar
+-u -p an
+-u -p av
+-u -p aw
+-u -p ap
+-u -p an -r a
+-u -p av -r a
+-u -p aw -r a
+-u -p ap -r a
+-b -p ar
+-b -p an
+-b -p av
+-b -p aw
+-b -p ap
+-b -p an -r a
+-b -p av -r a
+-b -p aw -r a
+-b -p ap -r a
+-u -p gr -p ar
+-u -p gn -p ar
+-u -p gv -p ar
+-u -p gw -p ar
+-u -p gp -p ar
+-n -u -p gr
+-n -u -p gn
+-n -u -p gv
+-n -u -p gw
+-n -u -p gp
+-n -u -p gn -r g
+-n -u -p gv -r g
+-n -u -p gw -r g
+-n -u -p gp -r g
+-n -b -p gr
+-n -b -p gn
+-n -b -p gv
+-n -b -p gw
+-n -b -p gp
+-n -b -p gn -r g
+-n -b -p gv -r g
+-n -b -p gw -r g
+-n -b -p gp -r g
+-n -u -p ar
+-n -u -p an
+-n -u -p av
+-n -u -p aw
+-n -u -p ap
+-n -u -p an -r a
+-n -u -p av -r a
+-n -u -p aw -r a
+-n -u -p ap -r a
+-n -b -p ar
+-n -b -p an
+-n -b -p av
+-n -b -p aw
+-n -b -p ap
+-n -b -p an -r a
+-n -b -p av -r a
+-n -b -p aw -r a
+-n -b -p ap -r a
+-n -u -p gr -p ar
+-n -u -p gn -p ar
+-n -u -p gv -p ar
+-n -u -p gw -p ar
+-n -u -p gp -p ar
+-u -p gn -r g -p ar
+-u -p gv -r g -p ar
+-u -p gw -r g -p ar
+-u -p gp -r g -p ar
+-b -p gr -p ar
+-b -p gn -p ar
+-b -p gv -p ar
+-b -p gw -p ar
+-b -p gp -p ar
+-b -p gn -r g -p ar
+-b -p gv -r g -p ar
+-b -p gw -r g -p ar
+-b -p gp -r g -p ar
+-u -p gr -p an
+-u -p gn -p an
+-u -p gv -p an
+-u -p gw -p an
+-u -p gp -p an
+-u -p gn -r g -p an
+-u -p gv -r g -p an
+-u -p gw -r g -p an
+-u -p gp -r g -p an
+-b -p gr -p an
+-b -p gn -p an
+-b -p gv -p an
+-b -p gw -p an
+-b -p gp -p an
+-b -p gn -r g -p an
+-b -p gv -r g -p an
+-b -p gw -r g -p an
+-b -p gp -r g -p an
+-u -p gr -p av
+-u -p gn -p av
+-u -p gv -p av
+-u -p gw -p av
+-u -p gp -p av
+-u -p gn -r g -p av
+-u -p gv -r g -p av
+-u -p gw -r g -p av
+-u -p gp -r g -p av
+-b -p gr -p av
+-b -p gn -p av
+-b -p gv -p av
+-b -p gw -p av
+-b -p gp -p av
+-b -p gn -r g -p av
+-b -p gv -r g -p av
+-b -p gw -r g -p av
+-b -p gp -r g -p av
+-u -p gr -p aw
+-u -p gn -p aw
+-u -p gv -p aw
+-u -p gw -p aw
+-u -p gp -p aw
+-u -p gn -r g -p aw
+-u -p gv -r g -p aw
+-u -p gw -r g -p aw
+-u -p gp -r g -p aw
+-b -p gr -p aw
+-b -p gn -p aw
+-b -p gv -p aw
+-b -p gw -p aw
+-b -p gp -p aw
+-b -p gn -r g -p aw
+-b -p gv -r g -p aw
+-b -p gw -r g -p aw
+-b -p gp -r g -p aw
+-u -p gr -p ap
+-u -p gn -p ap
+-u -p gv -p ap
+-u -p gw -p ap
+-u -p gp -p ap
+-u -p gn -r g -p ap
+-u -p gv -r g -p ap
+-u -p gw -r g -p ap
+-u -p gp -r g -p ap
+-b -p gr -p ap
+-b -p gn -p ap
+-b -p gv -p ap
+-b -p gw -p ap
+-b -p gp -p ap
+-b -p gn -r g -p ap
+-b -p gv -r g -p ap
+-b -p gw -r g -p ap
+-b -p gp -r g -p ap
+-u -p gr -p an -r a
+-u -p gn -p an -r a
+-u -p gv -p an -r a
+-u -p gw -p an -r a
+-u -p gp -p an -r a
+-u -p gn -r g -p an -r a
+-u -p gv -r g -p an -r a
+-u -p gw -r g -p an -r a
+-u -p gp -r g -p an -r a
+-b -p gr -p an -r a
+-b -p gn -p an -r a
+-b -p gv -p an -r a
+-b -p gw -p an -r a
+-b -p gp -p an -r a
+-b -p gn -r g -p an -r a
+-b -p gv -r g -p an -r a
+-b -p gw -r g -p an -r a
+-b -p gp -r g -p an -r a
+-u -p gr -p av -r a
+-u -p gn -p av -r a
+-u -p gv -p av -r a
+-u -p gw -p av -r a
+-u -p gp -p av -r a
+-u -p gn -r g -p av -r a
+-u -p gv -r g -p av -r a
+-u -p gw -r g -p av -r a
+-u -p gp -r g -p av -r a
+-b -p gr -p av -r a
+-b -p gn -p av -r a
+-b -p gv -p av -r a
+-b -p gw -p av -r a
+-b -p gp -p av -r a
+-b -p gn -r g -p av -r a
+-b -p gv -r g -p av -r a
+-b -p gw -r g -p av -r a
+-b -p gp -r g -p av -r a
+-u -p gr -p aw -r a
+-u -p gn -p aw -r a
+-u -p gv -p aw -r a
+-u -p gw -p aw -r a
+-u -p gp -p aw -r a
+-u -p gn -r g -p aw -r a
+-u -p gv -r g -p aw -r a
+-u -p gw -r g -p aw -r a
+-u -p gp -r g -p aw -r a
+-b -p gr -p aw -r a
+-b -p gn -p aw -r a
+-b -p gv -p aw -r a
+-b -p gw -p aw -r a
+-b -p gp -p aw -r a
+-b -p gn -r g -p aw -r a
+-b -p gv -r g -p aw -r a
+-b -p gw -r g -p aw -r a
+-b -p gp -r g -p aw -r a
+-u -p gr -p ap -r a
+-u -p gn -p ap -r a
+-u -p gv -p ap -r a
+-u -p gw -p ap -r a
+-u -p gp -p ap -r a
+-u -p gn -r g -p ap -r a
+-u -p gv -r g -p ap -r a
+-u -p gw -r g -p ap -r a
+-u -p gp -r g -p ap -r a
+-b -p gr -p ap -r a
+-b -p gn -p ap -r a
+-b -p gv -p ap -r a
+-b -p gw -p ap -r a
+-b -p gp -p ap -r a
+-b -p gn -r g -p ap -r a
+-b -p gv -r g -p ap -r a
+-b -p gw -r g -p ap -r a
+-b -p gp -r g -p ap -r a
+-n -u -p gr -p ar
+-n -u -p gn -p ar
+-n -u -p gv -p ar
+-n -u -p gw -p ar
+-n -u -p gp -p ar
+-n -u -p gn -r g -p ar
+-n -u -p gv -r g -p ar
+-n -u -p gw -r g -p ar
+-n -u -p gp -r g -p ar
+-n -b -p gr -p ar
+-n -b -p gn -p ar
+-n -b -p gv -p ar
+-n -b -p gw -p ar
+-n -b -p gp -p ar
+-n -b -p gn -r g -p ar
+-n -b -p gv -r g -p ar
+-n -b -p gw -r g -p ar
+-n -b -p gp -r g -p ar
+-n -u -p gr -p an
+-n -u -p gn -p an
+-n -u -p gv -p an
+-n -u -p gw -p an
+-n -u -p gp -p an
+-n -u -p gn -r g -p an
+-n -u -p gv -r g -p an
+-n -u -p gw -r g -p an
+-n -u -p gp -r g -p an
+-n -b -p gr -p an
+-n -b -p gn -p an
+-n -b -p gv -p an
+-n -b -p gw -p an
+-n -b -p gp -p an
+-n -b -p gn -r g -p an
+-n -b -p gv -r g -p an
+-n -b -p gw -r g -p an
+-n -b -p gp -r g -p an
+-n -u -p gr -p av
+-n -u -p gn -p av
+-n -u -p gv -p av
+-n -u -p gw -p av
+-n -u -p gp -p av
+-n -u -p gn -r g -p av
+-n -u -p gv -r g -p av
+-n -u -p gw -r g -p av
+-n -u -p gp -r g -p av
+-n -b -p gr -p av
+-n -b -p gn -p av
+-n -b -p gv -p av
+-n -b -p gw -p av
+-n -b -p gp -p av
+-n -b -p gn -r g -p av
+-n -b -p gv -r g -p av
+-n -b -p gw -r g -p av
+-n -b -p gp -r g -p av
+-n -u -p gr -p aw
+-n -u -p gn -p aw
+-n -u -p gv -p aw
+-n -u -p gw -p aw
+-n -u -p gp -p aw
+-n -u -p gn -r g -p aw
+-n -u -p gv -r g -p aw
+-n -u -p gw -r g -p aw
+-n -u -p gp -r g -p aw
+-n -b -p gr -p aw
+-n -b -p gn -p aw
+-n -b -p gv -p aw
+-n -b -p gw -p aw
+-n -b -p gp -p aw
+-n -b -p gn -r g -p aw
+-n -b -p gv -r g -p aw
+-n -b -p gw -r g -p aw
+-n -b -p gp -r g -p aw
+-n -u -p gr -p ap
+-n -u -p gn -p ap
+-n -u -p gv -p ap
+-n -u -p gw -p ap
+-n -u -p gp -p ap
+-n -u -p gn -r g -p ap
+-n -u -p gv -r g -p ap
+-n -u -p gw -r g -p ap
+-n -u -p gp -r g -p ap
+-n -b -p gr -p ap
+-n -b -p gn -p ap
+-n -b -p gv -p ap
+-n -b -p gw -p ap
+-n -b -p gp -p ap
+-n -b -p gn -r g -p ap
+-n -b -p gv -r g -p ap
+-n -b -p gw -r g -p ap
+-n -b -p gp -r g -p ap
+-n -u -p gr -p an -r a
+-n -u -p gn -p an -r a
+-n -u -p gv -p an -r a
+-n -u -p gw -p an -r a
+-n -u -p gp -p an -r a
+-n -u -p gn -r g -p an -r a
+-n -u -p gv -r g -p an -r a
+-n -u -p gw -r g -p an -r a
+-n -u -p gp -r g -p an -r a
+-n -b -p gr -p an -r a
+-n -b -p gn -p an -r a
+-n -b -p gv -p an -r a
+-n -b -p gw -p an -r a
+-n -b -p gp -p an -r a
+-n -b -p gn -r g -p an -r a
+-n -b -p gv -r g -p an -r a
+-n -b -p gw -r g -p an -r a
+-n -b -p gp -r g -p an -r a
+-n -u -p gr -p av -r a
+-n -u -p gn -p av -r a
+-n -u -p gv -p av -r a
+-n -u -p gw -p av -r a
+-n -u -p gp -p av -r a
+-n -u -p gn -r g -p av -r a
+-n -u -p gv -r g -p av -r a
+-n -u -p gw -r g -p av -r a
+-n -u -p gp -r g -p av -r a
+-n -b -p gr -p av -r a
+-n -b -p gn -p av -r a
+-n -b -p gv -p av -r a
+-n -b -p gw -p av -r a
+-n -b -p gp -p av -r a
+-n -b -p gn -r g -p av -r a
+-n -b -p gv -r g -p av -r a
+-n -b -p gw -r g -p av -r a
+-n -b -p gp -r g -p av -r a
+-n -u -p gr -p aw -r a
+-n -u -p gn -p aw -r a
+-n -u -p gv -p aw -r a
+-n -u -p gw -p aw -r a
+-n -u -p gp -p aw -r a
+-n -u -p gn -r g -p aw -r a
+-n -u -p gv -r g -p aw -r a
+-n -u -p gw -r g -p aw -r a
+-n -u -p gp -r g -p aw -r a
+-n -b -p gr -p aw -r a
+-n -b -p gn -p aw -r a
+-n -b -p gv -p aw -r a
+-n -b -p gw -p aw -r a
+-n -b -p gp -p aw -r a
+-n -b -p gn -r g -p aw -r a
+-n -b -p gv -r g -p aw -r a
+-n -b -p gw -r g -p aw -r a
+-n -b -p gp -r g -p aw -r a
+-n -u -p gr -p ap -r a
+-n -u -p gn -p ap -r a
+-n -u -p gv -p ap -r a
+-n -u -p gw -p ap -r a
+-n -u -p gp -p ap -r a
+-n -u -p gn -r g -p ap -r a
+-n -u -p gv -r g -p ap -r a
+-n -u -p gw -r g -p ap -r a
+-n -u -p gp -r g -p ap -r a
+-n -b -p gr -p ap -r a
+-n -b -p gn -p ap -r a
+-n -b -p gv -p ap -r a
+-n -b -p gw -p ap -r a
+-n -b -p gp -p ap -r a
+-n -b -p gn -r g -p ap -r a
+-n -b -p gv -r g -p ap -r a
+-n -b -p gw -r g -p ap -r a
+-n -b -p gp -r g -p ap -r a
