@@ -19,9 +19,15 @@ counter=$(find "data/results" -type f | wc -l)
 ((counter++))
 ((counter--))
 
+get_filename()
+{
+    timestamp=$(date +"%Y%m%d%H%M%S")
+    random_number=$((RANDOM % 10000))
+    unique_number="${timestamp}_${random_number}"
+    filename="data_${unique_number}.txt"
 
-#optimisations=(-m -n -u -b -n\ -u -n\ -b)
-
+    echo "$filename"
+}
 opt_filepath="optimisations.txt"
 
 optimistaions=()
@@ -34,7 +40,7 @@ find "$folder" -type f | while read -r file; do
     for opt in "${optimisations[@]}"; do
         echo "OPT: $opt"
         echo "./src/bin/BBCMMS -d $file -e data/results/data_${folder_name}_${opt//\ /_}.txt $opt"
-	./src/bin/BBCMMS -d "$file" -e "data/results/data_${folder_name}_${opt//\ /_}.txt" $opt
+        ./src/bin/BBCMMS -d "$file" -e "data/results/data_${folder_name}_${opt//\ /_}.txt" $opt
         ((counter++))
     done
 done
