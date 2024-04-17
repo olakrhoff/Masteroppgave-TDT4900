@@ -5,3 +5,4 @@ plots/*
 data/*
 Articles/*
 compile_commands.json
+lib/*

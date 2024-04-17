@@ -1,12 +1,25 @@
 ARCH := $(shell uname -m)
+OS := $(shell uname -s)
 
-ifeq ($(ARCH), arm64)
-LIBRARY_PATH = -L/opt/homebrew/lib
-INCLUDE_PATH = -I/opt/homebrew/include
-else
-LIBRARY_PATH =
-INCLUDE_PATH =
+
+ifeq ($(OS), Linux)
+	LP_SOLVE_PATH = lib/lp_solve_5.5/lpsolve55/bin/ux64
+	LIBRARY_PATH = -L$(LP_SOLVE_PATH)
+	INCLUDE_PATH = -Ilib/lp_solve_5.5
+	export LD_LIBRARY_PATH := $(LP_SOLVE_PATH):$(LD_LIBRARY_PATH)
+else ifeq ($(OS), Darwin)
+	ifeq ($(ARCH), arm64)
+		LIBRARY_PATH = -L/opt/homebrew/lib
+		INCLUDE_PATH = -I/opt/homebrew/include
+	else
+		LIBRARY_PATH =
+		INCLUDE_PATH =
+	endif
+else # Not handled
+	$(error Operating system ($(OS)) not supported.)
 endif
+
+
 
 CC = g++
 CFLAGS = -std=c++20 -O3 -g -Wall -Wextra $(INCLUDE_PATH)
@@ -19,7 +32,7 @@ OBJ_FILES = $(SRC_FILES:.cpp=.o)
 
 CURDIR = '$(PWD)'
 
-.PHONY: setup run clean execute build analysis run_bb tree test fix gen format_data
+.PHONY: setup run clean execute build analysis run_bb tree test fix gen format_data paths
 
 run: setup clean execute
 
@@ -29,7 +42,8 @@ setup:
 clean:  
 	rm -rf $(CURDIR)/src/bin/*
 
-build:
+
+build:  paths
 	$(CC) $(CFLAGS) $(CURDIR)/src/generate_dataset.cpp -o $(CURDIR)/src/bin/generate_dataset $(INCLUDE_DIRS)
 	$(CC) $(CFLAGS) $(SRC_FILES) -o $(CURDIR)/src/bin/BBCMMS $(LDFLAGS) $(INCLUDE_DIRS)
 	$(CC) $(CFLAGS) $(CURDIR)/src/test_LPSolver.cpp $(CURDIR)/src/LPSolver.cpp -o $(CURDIR)/src/bin/test_LPSolver $(LDFLAGS) $(INCLUDE_DIRS)
