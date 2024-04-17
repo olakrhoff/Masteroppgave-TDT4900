@@ -6,3 +6,5 @@ data/*
 Articles/*
 compile_commands.json
 lib/*
+run_plans/*
+output/*

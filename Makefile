@@ -37,7 +37,7 @@ CURDIR = '$(PWD)'
 run: setup clean execute
 
 setup:
-	mkdir -p plots data data/results src/bin
+	mkdir -p plots data data/results src/bin run_plans
 
 clean:  
 	rm -rf $(CURDIR)/src/bin/*
