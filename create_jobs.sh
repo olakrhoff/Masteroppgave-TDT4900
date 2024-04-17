@@ -21,8 +21,13 @@ run_plan="#!/bin/sh
 #SBATCH --nodes=1             # 1 compute nodes
 #SBATCH --cpus-per-task=2     # 2 CPU cores
 #SBATCH --mem=5G              # 5 gigabytes memory
-#SBATCH --output=output/${data_name}.txt    # Log file
-echo 'data from job'"
+#SBATCH --output=output/log_${data_name}.txt    # Log file
+echo 'Starting job'
+./src/bin/BBCMMS -d data/intervals/M/small/bnvnwn/small2.txt -e data/results/data1.txt -m
+echo 'Job finsihed'"
+
+
+
 
 echo "$run_plan" > "run_plans/job_${data_name}.slurm"
 echo "Run plan created for patch: $data_path"

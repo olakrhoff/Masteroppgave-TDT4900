@@ -6,7 +6,7 @@ ifeq ($(OS), Linux)
 	LP_SOLVE_PATH = lib/lp_solve_5.5/lpsolve55/bin/ux64
 	LIBRARY_PATH = -L$(LP_SOLVE_PATH)
 	INCLUDE_PATH = -Ilib/lp_solve_5.5
-	export LD_LIBRARY_PATH := $(LP_SOLVE_PATH):$(LD_LIBRARY_PATH)
+	#export LD_LIBRARY_PATH := $(LP_SOLVE_PATH):$(LD_LIBRARY_PATH) #This is needed if we dynamically link it, but that does not work when queueing jobs
 else ifeq ($(OS), Darwin)
 	ifeq ($(ARCH), arm64)
 		LIBRARY_PATH = -L/opt/homebrew/lib
