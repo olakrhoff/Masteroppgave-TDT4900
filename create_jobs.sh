@@ -19,7 +19,7 @@ run_plan="#!/bin/sh
 #SBATCH --account=ie-idi
 #SBATCH --time=0-00:15:00     # 0 days and 15 minutes limit
 #SBATCH --nodes=1             # 1 compute nodes
-#SBATCH --cpus-per-task=2     # 2 CPU cores
+#SBATCH --cpus-per-task=1     # 2 CPU cores
 #SBATCH --mem=5G              # 5 gigabytes memory
 #SBATCH --output=output/log_${data_name}.txt    # Log file
 echo 'Starting job'

@@ -1,7 +1,17 @@
 #!/bin/bash
 
+if [ $# -eq 0 ]; then
+    echo "Usage: $0 <path/to/data>"
+    exit 1
+fi
 
-folder="data/intervals/M/small"
+folder="$1"
+folder_name="${folder//\//_}"
+
+if [ ! -d "$folder" ]; then
+    echo "Directory not found: $folder"
+    exit 1
+fi
 
 counter=$(find "data/results" -type f | wc -l)
 
@@ -20,14 +30,11 @@ while IFS= read -r line; do
     optimisations+=("$line")
 done < "$opt_filepath"
 
-# Print the array (optional)
-printf '%s\n' "${optimisations[@]}"
- 
 find "$folder" -type f | while read -r file; do
     for opt in "${optimisations[@]}"; do
         echo "OPT: $opt"
-        echo "./src/bin/BBCMMS -d $file -e data/results/data$counter.txt $opt"
-        ./src/bin/BBCMMS -d "$file" -e "data/results/data$counter.txt" $opt
+        echo "./src/bin/BBCMMS -d $file -e data/results/data_${folder_name}_${opt//\ /_}.txt $opt"
+	./src/bin/BBCMMS -d "$file" -e "data/results/data_${folder_name}_${opt//\ /_}.txt" $opt
         ((counter++))
     done
 done
