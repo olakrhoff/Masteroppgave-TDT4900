@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Description: This script takes a directory path and 
+# creates a job for each interval (directory containing files)
+
 if [ $# -eq 0 ]; then
     echo "Usage: $0 <path/to/data>"
     exit 1
@@ -16,15 +19,16 @@ fi
 
 run_plan="#!/bin/sh
 #SBATCH --partition=CPUQ
+#SBATCH --job-name=${data_name}
 #SBATCH --account=ie-idi
-#SBATCH --time=0-00:15:00     # 0 days and 15 minutes limit
+#SBATCH --time=0-00:30:00     # 0 days and 30 minutes limit
 #SBATCH --nodes=1             # 1 compute nodes
 #SBATCH --cpus-per-task=1     # 2 CPU cores
-#SBATCH --mem=5G              # 5 gigabytes memory
+#SBATCH --mem=32M             # 32 megabytes memory
 #SBATCH --output=output/log_${data_name}.txt    # Log file
-echo 'Starting job'
-./src/bin/BBCMMS -d data/intervals/M/small/bnvnwn/small2.txt -e data/results/data1.txt -m
-echo 'Job finsihed'"
+echo 'Interval'
+./run_batch.sh ${data_path}
+echo 'Job finished'"
 
 
 
