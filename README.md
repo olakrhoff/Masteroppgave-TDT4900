@@ -120,3 +120,17 @@ Usage: ```generate_dataset -o <output_filepath> -a <from>:<to>  -g <from>:<to> -
     * u: UNIFORM
   * Example: ```-d brwu```. Sets budget to random dist. and weights to uniform dist., value is not set, so it is random by default.
   * Note: if a later assignes a different value to the option the option will be overriden.
+ 
+
+
+## Running experiments
+Here we will look at how we run the experiments.
+
+### Create data
+Here we need to run the command ```make gen``` to generate the datasets.
+
+### Start the experiments
+Here we need to run the command ```make start_experiments``` to start all the experiments.
+
+### Manage the experiments
+Some experiments might encounter a timeout and will then need to be reschduled in a smaller batch. This is taken care of by the command ```make manage_experiments```.
