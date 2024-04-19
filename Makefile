@@ -32,7 +32,7 @@ OBJ_FILES = $(SRC_FILES:.cpp=.o)
 
 CURDIR = '$(PWD)'
 
-.PHONY: setup run clean execute build analysis run_bb tree test fix gen format_data paths
+.PHONY: setup run clean execute build analysis run_bb tree test fix gen format_data paths start_experiments manage_experiments
 
 run: setup clean execute
 
@@ -86,3 +86,9 @@ test: setup build
 
 format_data: 
 	sed 's/,/,:/g' data/global_results.txt | column -t -s: | sed 's/ ,/,/g' > data/global_results_formated.txt
+
+start_experiments:
+	./start_experiments.sh
+
+manage_experiments:
+	./manage_experiments.sh

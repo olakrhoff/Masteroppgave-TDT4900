@@ -16,8 +16,13 @@ for file in timeout_files/*.txt; do
 		echo $file
 		if head -n 1 "$file" | grep -q "Interval"; then
 			echo "Log failed interval"
+			./reschedule_interval.sh $file
+		elif head -n 1 "$file" | grep -q "Instance"; then
+			echo "Log failed on instance"
+			./reschedule_instance.sh $file
 		else
-			echo "Log failed something else"
+			echo "Log failed on single run"
+			./calibrate_max_time.sh $file
 		fi
 	fi
 done
