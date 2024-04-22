@@ -2,9 +2,11 @@
 
 #Description: This script will remove all logs for finished jobs.
 
-confirmation_message="job finished"
+confirmation_message="Job finished"
 
 directory="output"
+
+counter=0
 
 # Check if the source directory exists
 if [ ! -d "$directory" ]; then
@@ -18,11 +20,10 @@ for file in "$directory"/*.txt; do
     if [ -f "$file" ] && [ -r "$file" ]; then
         # Check if the last line of the file contains the confirmation message
         if tail -n 1 "$file" | grep -q "$confirmation_message"; then
-            echo "$file can be removed"
-            #rm "$file"
-        else
-            echo "$file is not finished"
+            rm "$file"
+            ((counter++))
         fi
     fi
 done
 
+echo  "$counter"

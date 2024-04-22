@@ -2,6 +2,8 @@
 
 #Description: This script takes a log file from a failed interval
 #as input and creats jobs for all the instances that did not finish.
+#After it has created the new jobs the file passed as the argument
+#will be deleted to ensure that we don't generate duplicates later.
 
 if [ $# -ne 1 ]; then
     echo "Usage: $0 <path/to/interval/log/file>"
@@ -10,7 +12,6 @@ fi
 
 log_file="$1"
 
-# Echo all files in the directory
 if [ ! -f "$log_file" ]; then
 	echo "File given was not a file: $log_file"
 	exit 1
@@ -38,17 +39,13 @@ else
     exit 1
 fi
 
-
+counter=0
 # Now we have the list of files that we need to create jobs for
-for file in "${isntances_to_run[@]}"; do
+for file in "${instances_to_run[@]}"; do
     ./create_jobs.sh "$(directory)/$(file)"
+    ((counter++))
 done
 
-echo "LINE: $filtered_line"
-echo "INSTANCE: $last_instance"
-echo "DIR: $directory"
-echo "FILES: $all_instances"
-echo "TODO: $instances_to_run"
+rm $log_file
 
-
-echo "TODO: Implement"
+echo "$counter"

@@ -28,6 +28,8 @@ if [ ! -d "$destination_directory" ]; then
     exit 1
 fi
 
+counter=0
+
 # Loop through all .txt files in the source directory
 for file in "$source_directory"/*.txt; do
     # Check if the file exists and is readable
@@ -35,7 +37,9 @@ for file in "$source_directory"/*.txt; do
         # Check if the last line of the file contains the error message
         if tail -n 1 "$file" | grep -q "$error_message"; then
             mv "$file" "$destination_directory"
-	    echo "$file did not finish"
+            ((counter++))
         fi
     fi
 done
+
+echo "$counter"

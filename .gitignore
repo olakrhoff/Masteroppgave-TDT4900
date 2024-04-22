@@ -9,3 +9,4 @@ lib/*
 run_plans/*
 output/*
 job.slurm
+username.txt
