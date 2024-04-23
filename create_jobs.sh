@@ -53,17 +53,17 @@ if [[ "$identifier" == "Single" ]]; then
     fi
 else
     run_plan="#!/bin/sh
-    #SBATCH --partition=CPUQ
-    #SBATCH --job-name=${data_name}
-    #SBATCH --account=ie-idi
-    #SBATCH --time=0-00:30:00     # 0 days and 30 minutes limit
-    #SBATCH --nodes=1             # 1 compute nodes
-    #SBATCH --cpus-per-task=1     # 2 CPU cores
-    #SBATCH --mem=32M             # 32 megabytes memory
-    #SBATCH --output=output/log_${data_name}.txt    # Log file
-    echo '$identifier'
-    ./run_batch.sh ${data_path}
-    echo 'Job finished'"
+#SBATCH --partition=CPUQ
+#SBATCH --job-name=${data_name}
+#SBATCH --account=ie-idi
+#SBATCH --time=0-00:30:00     # 0 days and 30 minutes limit
+#SBATCH --nodes=1             # 1 compute nodes
+#SBATCH --cpus-per-task=1     # 2 CPU cores
+#SBATCH --mem=32M             # 32 megabytes memory
+#SBATCH --output=output/log_${data_name}.txt    # Log file
+echo '$identifier'
+./run_batch.sh ${data_path}
+echo 'Job finished'"
 
     echo "$run_plan" > "run_plans/job_${data_name}.slurm"
 fi

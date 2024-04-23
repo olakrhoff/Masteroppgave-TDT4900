@@ -63,17 +63,17 @@ for opt in "${opts_to_run[@]}"; do
     opt_label=${opt//\ /_}
     opt_label=${opt_label//-/}
     run_plan="#!/bin/sh
-    #SBATCH --partition=CPUQ
-    #SBATCH --job-name=${data_name}_${opt_label}
-    #SBATCH --account=ie-idi
-    #SBATCH --time=0-00:30:00     # 0 days and 30 minutes limit
-    #SBATCH --nodes=1             # 1 compute nodes
-    #SBATCH --cpus-per-task=1     # 2 CPU cores
-    #SBATCH --mem=32M             # 32 megabytes memory
-    #SBATCH --output=output/log_${data_name}.txt    # Log file
-    echo 'Single'
-    ./src/bin/BBCMMS -d "$data_path" -e "data/results/data_${data_name}_${opt_label}.txt" $opt
-    echo 'Job finished'"
+#SBATCH --partition=CPUQ
+#SBATCH --job-name=${data_name}_${opt_label}
+#SBATCH --account=ie-idi
+#SBATCH --time=0-00:30:00     # 0 days and 30 minutes limit
+#SBATCH --nodes=1             # 1 compute nodes
+#SBATCH --cpus-per-task=1     # 2 CPU cores
+#SBATCH --mem=32M             # 32 megabytes memory
+#SBATCH --output=output/log_${data_name}.txt    # Log file
+echo 'Single'
+./src/bin/BBCMMS -d "$data_path" -e "data/results/data_${data_name}_${opt_label}.txt" $opt
+echo 'Job finished'"
 
     echo "$run_plan" > "run_plans/job_${data_name}_${opt_label}.slurm"
 done
