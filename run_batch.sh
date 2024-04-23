@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ $# -eq 0 ]; then
+if [ $# -ne 1 ]; then
     echo "Usage: $0 <path/to/data>"
     exit 1
 fi
@@ -8,8 +8,18 @@ fi
 folder="$1"
 folder_name="${folder//\//_}"
 
-if [ ! -d "$folder" ]; then
-    echo "Directory not found: $folder"
+type=""
+
+if [ -d "$folder" ]; then
+    type="dir"
+fi
+
+if [ -f "$folder" ]; then
+    type="file"
+fi
+
+if [[ ! "$type" ]]; then
+    echo "Path given is neither a directory nor a file: '$type'"
     exit 1
 fi
 

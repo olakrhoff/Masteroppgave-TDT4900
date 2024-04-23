@@ -59,6 +59,8 @@ else
     opts_to_run=("${optimisations[@]}")
 fi
 
+counter=0
+
 for opt in "${opts_to_run[@]}"; do
     opt_label=${opt//\ /_}
     opt_label=${opt_label//-/}
@@ -70,10 +72,13 @@ for opt in "${opts_to_run[@]}"; do
 #SBATCH --nodes=1             # 1 compute nodes
 #SBATCH --cpus-per-task=1     # 2 CPU cores
 #SBATCH --mem=32M             # 32 megabytes memory
-#SBATCH --output=output/log_${data_name}.txt    # Log file
+#SBATCH --output=output/log_${data_name}_${opt_label}.txt    # Log file
 echo 'Single'
 ./src/bin/BBCMMS -d "$data_path" -e "data/results/data_${data_name}_${opt_label}.txt" $opt
 echo 'Job finished'"
 
     echo "$run_plan" > "run_plans/job_${data_name}_${opt_label}.slurm"
+    ((counter++))
 done
+
+echo "$counter"

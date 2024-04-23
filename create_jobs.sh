@@ -30,8 +30,6 @@ if [ -f "$data_path" ]; then
     identifier="Instance"
 fi
 
-echo "$identifier"
-
 if [ $# -eq 2 ]; then
     second_arg="$2"
     if [[ ! "$second_arg" == "i" ]]; then
