@@ -42,6 +42,7 @@ fi
 counter=0
 # Now we have the list of files that we need to create jobs for
 for file in "${instances_to_run[@]}"; do
+    echo "DIR: $directory/$file"
     ./create_jobs.sh "$(directory)/$(file)"
     ((counter++))
 done

@@ -1,4 +1,4 @@
-
+#!/bin/bash
 
 # Description: This script takes a directory path or a file path and 
 # creates a job for each interval (directory containing files) or 
