@@ -10,3 +10,5 @@ run_plans/*
 output/*
 job.slurm
 username.txt
+temp/*
+timeout_files/*

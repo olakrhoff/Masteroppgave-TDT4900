@@ -6,8 +6,10 @@
 #and how many was started now
 
 username=$(cat username.txt)
-jobs_running=$(squeue -u $username | grep "$username" | wc -l)
-echo "$jobs_running job(s) are still running"
+total_jobs=$(squeue -u $username | grep "$username" | wc -l)
+jobs_running=$(squeue -u $username | grep "$username  R" | wc -l)
+jobs_queued=$((total_jobs - jobs_running))
+echo "$jobs_running job(s) are running, $jobs_queued job(s) are queued, total job(s) left: $total_jobs"
 
 
 echo "Cleaning up finished jobs..."
@@ -25,22 +27,25 @@ if [ "$failed_jobs" -eq 0 ]; then
 fi
 
 echo "Rescheduling intervals..."
-intervals=0
-for failed_file in timeout_files/*; do
-    first_line=$(head -n 1 "$failed_file")
-    if [[ "$first_line" != "Interval" ]]; then
-        continue
-    fi
-    val=$(./reschedule_interval.sh $failed_file | tail -n 1)
-    if [[ "$val" =~ ^-?[0-9]+$ ]]; then
-        intervals=$((intervals + val))
-    else
-        echo "Error: The output from reschedule_interval.sh is not a valid number: '$val'"
-        exit 1
-    fi
-done
-echo "$intervals new job(s) from intervals created"
-
+if [ ! -z "$(ls -A timeout_files)" ]; then
+    intervals=0
+    for failed_file in timeout_files/*; do
+        first_line=$(head -n 1 "$failed_file")
+        if [[ "$first_line" != "Interval" ]]; then
+            continue
+        fi
+        val=$(./reschedule_interval.sh $failed_file | tail -n 1)
+        if [[ "$val" =~ ^-?[0-9]+$ ]]; then
+            intervals=$((intervals + val))
+        else
+            echo "Error: The output from reschedule_interval.sh is not a valid number: '$val'"
+            exit 1
+        fi
+    done
+    echo "$intervals new job(s) from intervals created"
+else
+    echo "No more timedout files to check, skipping interval checking"
+fi
 
 echo "Rescheduling instances..."
 instances=0
@@ -58,13 +63,24 @@ for failed_file in timeout_files/*; do
 done
 echo "$instances new job(s) from instances created"
 
+echo "Handling timedout single instance and configuration jobs..."
+singles=0
+
+all_files=(timeout_files/*)
+
+for file in "${all_files[@]}"; do
+    type=$(cat "$file" | head -n 1)
+    if [[ "$type" != "Single" ]]; then
+        continue
+    fi
+    ./set_timeout.sh $file
+    ((singles++))
+done
+echo "$singles cases handled"
+
 new_jobs=$((intervals + instances))
-echo "Staring new the $new_jobs created..."
+echo "Staring the $new_jobs new created..."
 ./start_all_jobs.sh
 echo "All jobs started"
 
 
-echo "Handling timedout single instance and configuration jobs..."
-echo "TODO"
-singles=0
-echo "$singles cases handled"

@@ -32,7 +32,7 @@ index=$(echo "$all_instances" | awk -v name="$last_attempted_file" '$0 == name {
 
 # Extract the part of the list that comes after the given name
 if [ -n "$index" ]; then
-    instances_to_run=$(echo "$all_instances" | awk -v idx="$index" 'NR >= idx')
+    instances_to_run=($(echo "$all_instances" | awk -v idx="$index" 'NR >= idx'))
 else
     echo "Given name not found in the list."
     exit 1
@@ -41,6 +41,7 @@ fi
 counter=0
 # Now we have the list of files that we need to create jobs for
 for file in "${instances_to_run[@]}"; do
+    echo "$file"
     ./create_jobs.sh "$directory/$file"
     ((counter++))
 done
