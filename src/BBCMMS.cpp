@@ -80,6 +80,7 @@ typedef struct options
     bool reverse_agents_order {false};
     bool non_naive {false};
     bool mip_solver_active {false};
+    bool skip {false};
 } options_t;
 
 typedef struct attributes
@@ -166,6 +167,9 @@ configurations_t CONFIGURATION {};
  *
  * --- OTHER ---
  * 
+ * -s (skip solving): Skips the solving, this is just a way to get the attributes
+ *                    exported quickly.
+ *
  * -e (export results): writes results to the global file of results. Might take
  *                      an argument for the filepath to where to store the data.
  */
@@ -175,10 +179,13 @@ void handle_options(int argc, char **argv)
         cout << argv[i] << " : ";
     cout << endl;
     int code {};
-    while ((code = getopt(argc, argv, "d:o:x:y:ubp:r:e::nm")) != -1)
+    while ((code = getopt(argc, argv, "d:o:x:y:ubp:r:e::nms")) != -1)
     {
         switch (code)
         {
+            case 's':
+                CONFIGURATION.options.skip = true;
+                break;
             case 'm':
                 CONFIGURATION.options.mip_solver_active = true;
                 break;
@@ -1566,7 +1573,7 @@ pair<allocation_t, double> BBCMMS(const vector<agent_t> &agents,
     double nodes_visited {};
     int num_goods = (int)agents.at(0).goods.size();
     int num_agents = (int)agents.size();
-
+    
     vector<double> agents_MMS {};
     for (int agent_idx = 0; agent_idx < (int)num_agents; ++agent_idx)
     {
@@ -1791,7 +1798,10 @@ int main(int argc, char **argv)
         // would give us the incorrect attributes for the instance
         find_attributes(agents, weights);
        
-        if (CONFIGURATION.options.mip_solver_active)
+        
+        if (CONFIGURATION.options.skip)
+        {}
+        else if (CONFIGURATION.options.mip_solver_active)
             tie(allocation, alpha_MMS) = solve_MIP(run_agents, run_weights);
         else
             tie(allocation, alpha_MMS) = BBCMMS(run_agents, run_weights);
