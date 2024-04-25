@@ -1,11 +1,11 @@
-#!/bin/zsh
+#!/bin/bash
 
 directory="data/results"
 
 output_file="data/global_results.txt"
 
 
-for file in "$directory"/data*; do
+for file in "$directory"/*; do
     cat "$file" >> "$output_file"
     rm "$file"
 done
