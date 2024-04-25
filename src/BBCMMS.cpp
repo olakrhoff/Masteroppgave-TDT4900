@@ -785,6 +785,25 @@ vector<agent_t> mirror_agents(const vector<agent_t> &agents, const int agent_idx
     return mirror_agents;
 }
 
+allocation_t insert_agent(const allocation_t &allocation, const int index, const vector<weight_t> &weights) 
+{
+    allocation_t new_alloc(allocation.get_number_of_agents() + 1);
+
+    for (int agent_idx = 0; agent_idx < allocation.get_number_of_agents(); ++agent_idx)
+    {
+        int new_agent_idx = agent_idx;
+        if (agent_idx >= index)
+            new_agent_idx++;
+
+        for (auto good_idx : allocation.get_goods_allocated_to_agent(agent_idx))
+        {
+            new_alloc.allocate_good_to_agent(good_idx, weights.at(good_idx), new_agent_idx);
+        }
+    }
+
+    return new_alloc;
+}
+
 pair<allocation_t, double> solve_MIP(const vector<agent_t> &agents, const vector<weight_t> &weights)
 {
     int num_agents = (int)agents.size();
@@ -801,7 +820,8 @@ pair<allocation_t, double> solve_MIP(const vector<agent_t> &agents, const vector
         {
             auto reduced_agents = agents;
             reduced_agents.erase(reduced_agents.begin() + agent_idx);
-            return solve_MIP(reduced_agents, weights);
+            auto value = solve_MIP(reduced_agents, weights);
+            return {insert_agent(value.first, agent_idx, weights), value.second};
         }
     }
 
