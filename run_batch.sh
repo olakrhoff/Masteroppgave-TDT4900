@@ -8,18 +8,9 @@ fi
 folder="$1"
 folder_name="${folder//\//_}"
 
-type=""
 
-if [ -d "$folder" ]; then
-    type="dir"
-fi
-
-if [ -f "$folder" ]; then
-    type="file"
-fi
-
-if [[ ! "$type" ]]; then
-    echo "Path given is neither a directory nor a file: '$type'"
+if [ ! -f "$folder" ]; then
+    echo "Path given is not to a file"
     exit 1
 fi
 
@@ -29,15 +20,6 @@ counter=$(find "data/results" -type f | wc -l)
 ((counter++))
 ((counter--))
 
-get_filename()
-{
-    timestamp=$(date +"%Y%m%d%H%M%S")
-    random_number=$((RANDOM % 10000))
-    unique_number="${timestamp}_${random_number}"
-    filename="data_${unique_number}.txt"
-
-    echo "$filename"
-}
 opt_filepath="optimisations.txt"
 
 optimistaions=()

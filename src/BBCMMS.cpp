@@ -458,10 +458,6 @@ void write_data_to_file(const vector<uint64_t> &times)
             exit(EXIT_FAILURE);
         }
 
-        // TODO: We need to add the attribute values and which optimisations 
-        // are active and of course the result of the running
-        // Format: "N, M, M/N, AVG_PERM_DIST, AVG_VAL_DIST, BUDGET/SIZE, TIME"
-    
         file << CONFIGURATION;
 
         file.close();

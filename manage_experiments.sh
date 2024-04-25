@@ -90,6 +90,6 @@ fi
 if [ ! -z "$(ls -A run_plans)" ]; then
     new_jobs=$((intervals + instances))
     echo "Staring the $new_jobs new created..."
-    ./start_all_jobs.sh
+    ./start_all_jobs.sh > /dev/null
     echo "All jobs started"
 fi
