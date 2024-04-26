@@ -3,6 +3,8 @@
 -n
 -u
 -b
+-n -u
+-n -b
 -u -p gr
 -u -p gn
 -u -p gv
