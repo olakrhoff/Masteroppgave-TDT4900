@@ -9,16 +9,12 @@ folder="$1"
 folder_name="${folder//\//_}"
 
 
-if [ ! -f "$folder" ]; then
-    echo "Path given is not to a file"
+if [ ! -f "$folder" ] && [ ! -d "$folder" ]; then
+    echo "Path given is not to a file nor a directory"
     exit 1
 fi
 
 counter=$(find "data/results" -type f | wc -l)
-
-# We hack the format to be a number, otherwise it adds a lot of spaces on the first element
-((counter++))
-((counter--))
 
 opt_filepath="optimisations.txt"
 

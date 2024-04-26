@@ -32,7 +32,7 @@ OBJ_FILES = $(SRC_FILES:.cpp=.o)
 
 CURDIR = '$(PWD)'
 
-.PHONY: setup run clean execute build analysis run_bb tree test fix gen format_data paths start_experiments manage_experiments
+.PHONY: setup run clean execute build analysis run_bb tree test fix gen format_data paths start_experiments manage_experiments clear
 
 run: setup clean execute
 
@@ -42,6 +42,8 @@ setup:
 clean:  
 	rm -rf $(CURDIR)/src/bin/*
 
+clear:
+	rm -f data/results/* output/* run_plans/* timeout_files/*
 
 build:  paths
 	$(CC) $(CFLAGS) $(CURDIR)/src/generate_dataset.cpp -o $(CURDIR)/src/bin/generate_dataset $(INCLUDE_DIRS)

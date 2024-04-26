@@ -10,7 +10,7 @@ if [ $# -ne 1 ]; then
 fi
 
 root_directory="$1"
-filter="/N/medium/bnvnwn"
+filter="data/interval"
 
 while IFS= read -r directory; do
     if echo "$directory" | grep -q "$filter"; then

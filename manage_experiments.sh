@@ -41,6 +41,7 @@ else
                 exit 1
             fi
         done
+        echo
         echo "$intervals new job(s) from intervals created"
     else
         echo "No more timedout files to check, skipping interval checking"
@@ -48,36 +49,48 @@ else
 
     echo "Rescheduling instances..."
     instances=0
-    for failed_file in timeout_files/*; do
-        first_line=$(head -n 1 "$failed_file")
-        if [[ "$first_line" != "Instance" ]]; then
-            continue
-        fi
-        val=$(./reschedule_instance.sh $failed_file | tail -n 1)
-        if [[ "$val" =~ ^-?[0-9]+$ ]]; then
-            instances=$((instances + val))
-            echo -ne "\rFiles: $instances"
-        else
-            echo "Error: The output from reschedule_instance.sh is not a valid number: '$val'"
-        fi
-    done
-    echo "$instances new job(s) from instances created"
+    if [ ! -z "$(ls -A timeout_files)" ]; then
+        for failed_file in timeout_files/*; do
+            first_line=$(head -n 1 "$failed_file")
+            if [[ "$first_line" != "Instance" ]]; then
+                continue
+            fi
+            val=$(./reschedule_instance.sh $failed_file | tail -n 1)
+            rm $failed_file
+            if [[ "$val" =~ ^-?[0-9]+$ ]]; then
+                instances=$((instances + val))
+                echo -ne "\rFiles: $instances"
+            else
+                echo "Error: The output from reschedule_instance.sh is not a valid number: '$val'"
+            fi
+        done
+        echo
+        echo "$instances new job(s) from instances created"
+    else
+        echo "No instances to handle"
+    fi
+
 
     echo "Handling timedout single instance and configuration jobs..."
-    singles=0
+    if [ ! -z "$(ls -A timeout_files)" ]; then
+        singles=0
 
-    all_files=(timeout_files/*)
+        all_files=(timeout_files/*)
 
-    for file in "${all_files[@]}"; do
-        type=$(cat "$file" | head -n 1)
-        if [[ "$type" != "Single" ]]; then
-            continue
-        fi
-        ./set_timeout.sh $file
-        ((singles++))
-        echo -ne "\rFiles: $singles"
-    done
-    echo "$singles cases handled"
+        for file in "${all_files[@]}"; do
+            type=$(cat "$file" | head -n 1)
+            if [[ "$type" != "Single" ]]; then
+                continue
+            fi
+            ./set_timeout.sh $file
+            ((singles++))
+            echo -ne "\rFiles: $singles"
+        done
+        echo
+        echo "$singles cases handled"
+    else
+        echo "No singles to handle"
+    fi
 fi
 
 
@@ -89,7 +102,7 @@ fi
 
 if [ ! -z "$(ls -A run_plans)" ]; then
     new_jobs=$((intervals + instances))
-    echo "Staring the $new_jobs new created..."
+    echo "Staring the $new_jobs new job(s) created..."
     ./start_all_jobs.sh > /dev/null
     echo "All jobs started"
 fi
