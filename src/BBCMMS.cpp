@@ -1252,7 +1252,12 @@ double find_avg_permutation_distance(const vector<agent_t> &agents)
     double n = agents.size();
     double num_distances = (n * (n - 1)) / 2; // Just some maths to explicitly find the number of pairs
                                               
-    return sum_distance / num_distances;
+    double avg_perm_dist = sum_distance / num_distances;
+
+    double m = agents.at(0).goods.size();
+    double max_perm_dist = 0.5 * m * (m - 1);
+
+    return avg_perm_dist / max_perm_dist; // Return normalised value
 }
 
 
