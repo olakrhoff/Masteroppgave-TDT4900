@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Find all file paths to inner folders
-# filter out the ones having 'small' in them
+# filter out the ones having 'filter' in them
 # create jobs with all the folders
 
 if [ $# -ne 1 ]; then
@@ -12,8 +12,9 @@ fi
 root_directory="$1"
 filter="data/interval"
 
-while IFS= read -r directory; do
-    if echo "$directory" | grep -q "$filter"; then
-	./create_jobs.sh $directory
-    fi
-done < <(find "$root_directory" -type d)
+
+directories=($(find "$root_directory" -type f | sed -n 's/\(.*\)\/[a-z]*[0-9]*.txt/\1/p' | uniq))
+
+for directory in "${directories[@]}"; do
+    ./create_jobs.sh $directory
+done

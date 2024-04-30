@@ -13,12 +13,14 @@ echo "$jobs_running job(s) are running, $jobs_queued job(s) are queued, total jo
 
 
 echo "Cleaning up finished jobs..."
-finished_jobs=$(./remove_finished_jobs.sh)
-echo "$finished_jobs new job(s) finished and cleaned up"
+echo "----------------------------"
+./remove_finished_jobs.sh
+echo "----------------------------"
 
 echo "Moving failed jobs..."
-moved_failed_jobs=$(./move_failed_jobs.sh output timeout_files)
-echo "$moved_failed_jobs moved"
+echo "----------------------------"
+./move_failed_jobs.sh output timeout_files
+echo "----------------------------"
 
 failed_jobs=$(ls timeout_files | grep ".txt" | wc -l)
 if [ "$failed_jobs" -eq 0 ]; then
@@ -56,7 +58,6 @@ else
                 continue
             fi
             val=$(./reschedule_instance.sh $failed_file | tail -n 1)
-            rm $failed_file
             if [[ "$val" =~ ^-?[0-9]+$ ]]; then
                 instances=$((instances + val))
                 echo -ne "\rFiles: $instances"
@@ -93,16 +94,31 @@ else
     fi
 fi
 
+max_jobs=50000
+to_start_jobs=$((max_jobs - total_jobs))
+local_counter=0
+ready_jobs="$(ls -A run_plans | wc -l)"
+if (( ready_jobs > 0)); then
+    echo "Starting the $ready_jobs new job(s) created..."
+    for job in run_plans/*; do
+        if (( local_counter >= to_start_jobs )); then
+            echo "\rMaximum number of jobs queued"
+            break
+        fi
+        sbatch "$job" > /dev/null 
+        rm "$job"
+        ((local_counter++))
+        percent=$((100 * local_counter / ready_jobs))
+
+        echo -ne "\rProgress: $percent% ($local_counter of $ready_jobs files processed)"
+    done
+    echo
+fi
 
 if [ ! -z "$(ls -A data/results)" ]; then
     echo "Adding results to global table..."
-    ./add_to_global.sh > /dev/null
+    echo "---------------------------------"
+    ./add_to_global.sh
+    echo "---------------------------------"
     echo "Global table updated"
-fi
-
-if [ ! -z "$(ls -A run_plans)" ]; then
-    new_jobs=$((intervals + instances))
-    echo "Staring the $new_jobs new job(s) created..."
-    ./start_all_jobs.sh > /dev/null
-    echo "All jobs started"
 fi
