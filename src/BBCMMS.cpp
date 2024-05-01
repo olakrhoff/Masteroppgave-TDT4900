@@ -805,6 +805,10 @@ pair<allocation_t, double> solve_MIP(const vector<agent_t> &agents, const vector
     int num_agents = (int)agents.size();
     int num_goods = (int)weights.size();
 
+    if (num_agents == 0)
+        return {allocation_t(0), 0.0};
+
+
     vector<double> agents_MMS {};
     for (int agent_idx = 0; agent_idx < num_agents; ++agent_idx)
     {
@@ -1012,7 +1016,6 @@ tuple<double, double, state_t, bool> upper_bound_find_MMS(const agent_t &agent, 
 double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t> &weights)
 {
     uint64_t num_goods = agent.goods.size();
-    cout << "AGNETS: " << num_agents << endl;
 
     // --- PREPROCESS THE BEST SOLUTION ---
     vector<agent_t> agents {};
@@ -1596,7 +1599,7 @@ pair<allocation_t, double> BBCMMS(const vector<agent_t> &agents,
     if (num_agents == 0)
         return {allocation_t(0), 0.0};
     int num_goods = (int)agents.at(0).goods.size();
-    cout << "BBCMMS: " << num_agents << endl;  
+
     vector<double> agents_MMS {};
     for (int agent_idx = 0; agent_idx < (int)num_agents; ++agent_idx)
     {
@@ -1613,7 +1616,6 @@ pair<allocation_t, double> BBCMMS(const vector<agent_t> &agents,
             allocation_t allocation(num_agents - 1);
             double alpha_MMS {};
 
-            cout << "HERE: " << num_agents << endl;
             tie(allocation, alpha_MMS) = BBCMMS(reduced_agents, weights);
            
             allocation_t corrected_allocation(num_agents);
