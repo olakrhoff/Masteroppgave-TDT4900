@@ -57,7 +57,7 @@ else
 #SBATCH --time=0-00:30:00     # 0 days and 30 minutes limit
 #SBATCH --nodes=1             # 1 compute nodes
 #SBATCH --cpus-per-task=1     # 2 CPU cores
-#SBATCH --mem=32M             # 32 megabytes memory
+#SBATCH --mem=128M             # 32 megabytes memory
 #SBATCH --output=output/log_${data_name}.txt    # Log file
 echo '$identifier'
 ./run_batch.sh ${data_path}

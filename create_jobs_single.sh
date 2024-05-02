@@ -71,7 +71,7 @@ for opt in "${opts_to_run[@]}"; do
 #SBATCH --time=0-00:30:00     # 0 days and 30 minutes limit
 #SBATCH --nodes=1             # 1 compute nodes
 #SBATCH --cpus-per-task=1     # 2 CPU cores
-#SBATCH --mem=32M             # 32 megabytes memory
+#SBATCH --mem=128M             # 32 megabytes memory
 #SBATCH --output=output/log_${data_name}_${opt_label}.txt    # Log file
 echo 'Single'
 ./src/bin/BBCMMS -d "$data_path" -e "data/results/data_${data_name}_${opt_label}.txt" $opt
