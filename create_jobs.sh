@@ -54,7 +54,7 @@ else
 #SBATCH --partition=CPUQ
 #SBATCH --job-name=${data_name}
 #SBATCH --account=ie-idi
-#SBATCH --time=0-00:30:00     # 0 days and 30 minutes limit
+#SBATCH --time=0-00:01:00     # 0 days and 30 minutes limit
 #SBATCH --nodes=1             # 1 compute nodes
 #SBATCH --cpus-per-task=1     # 2 CPU cores
 #SBATCH --mem=128M             # 32 megabytes memory

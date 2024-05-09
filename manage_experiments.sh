@@ -94,7 +94,7 @@ else
     fi
 fi
 
-max_jobs=50000
+max_jobs=1000
 to_start_jobs=$((max_jobs - total_jobs))
 local_counter=0
 ready_jobs="$(ls -A run_plans | wc -l)"
@@ -102,7 +102,8 @@ if (( ready_jobs > 0)); then
     echo "Starting the $ready_jobs new job(s) created..."
     for job in run_plans/*; do
         if (( local_counter >= to_start_jobs )); then
-            echo "\rMaximum number of jobs queued"
+            echo
+            echo "Maximum number of jobs queued"
             break
         fi
         sbatch "$job" > /dev/null 

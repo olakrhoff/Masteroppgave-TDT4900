@@ -25,7 +25,7 @@ echo "./src/bin/BBCMMS $options -s" > /dev/null
 export_path="$(echo "$options" | sed -n 's/.* -e \(.*.txt\) .*/\1/g;p')"
 
 file_content=$(cat "$export_path" | tail -n 1)
-corrected_content=$(echo "$file_content" | sed -n 's/, [0-9]*$/, 1800000000/g;p')
+corrected_content=$(echo "$file_content" | sed -n 's/, [0-9]*$/, 4000000000/g;p')
 echo "$corrected_content" > "$export_path"
 
 rm "$file_path"
