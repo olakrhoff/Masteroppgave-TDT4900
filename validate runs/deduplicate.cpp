@@ -4,23 +4,58 @@
 
 using namespace std;
 
+vector<string> split(const string &line, const string &delimiter)
+{
+    vector<string> result;
+
+    string temp = line;
+    while ((int)temp.find(delimiter) != -1)
+    {
+        result.emplace_back(temp.substr(0, temp.find(delimiter)));
+        temp = temp.substr(temp.find(delimiter) + delimiter.length());
+    }
+    result.emplace_back(temp);
+
+    return result;
+}
+
 void add_to_map(map<string, int> &removes, string &line)
 {
     while (line.at(0) == ' ')
         line = line.substr(1);
     int count = line.at(0) - '0';
     count--;
-    string temp = "data/intervals/" + line.substr(2);
+    string temp = line.substr(2);
 
     removes.insert(make_pair(temp, count));
 }
 
-int main()
-{
-    const string file = "global_results_batch_1.1.csv";
-    const string removes_file = "files.txt";
-    const string out = "global_results_batch_1.2.csv";
 
+string get_unique(const string &line)
+{
+    string temp;
+
+    temp += line.substr(0, line.find(','));
+
+    auto vals = split(line, ",");
+
+    for (int i = 7; i < vals.size() - 1; ++i)
+        temp += "," + vals.at(i);
+
+    return temp;
+}
+
+int main(int argc, char **argv)
+{
+    if (argc != 4)
+    {
+        cerr << "Usage: " << argv[0] << " <source> <duplicates> <dest>" << endl;
+        exit(1);
+    }
+
+    const string file = argv[1];
+    const string removes_file = argv[2];
+    const string out = argv[3];
 
     map<string, int> removes;
 
@@ -54,7 +89,7 @@ int main()
             outfile << line << endl;
             continue;
         }
-        string key = line.substr(0, line.find_last_of(',')); 
+        string key = get_unique(line);
 
         if (removes.find(key) != removes.end())
         {

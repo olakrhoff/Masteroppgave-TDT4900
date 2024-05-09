@@ -48,7 +48,10 @@ string edit_line(string &line)
             if (commas == 4)
             {
                 avg_perm = get_number(line, i);
-                
+       
+                if (avg_perm >= 0 && avg_perm <= 1)
+                    return line;
+
                 double max_perm = 0.5 * m * (m - 1);
                 double new_perm = avg_perm / max_perm;
 
@@ -59,10 +62,16 @@ string edit_line(string &line)
     }
 }
 
-int main()
+int main(int argc, char **argv)
 {
-    const string file = "global_results_batch_1.csv";
-    const string out = "corrected.csv";
+    if (argc != 3)
+    {
+        cerr << "Usage: " << argv[0] << " <source> <dest>" << endl;
+        exit(1);
+    }
+
+    const string file = argv[1];
+    const string out = argv[2];
 
     ifstream infile(file);
 
