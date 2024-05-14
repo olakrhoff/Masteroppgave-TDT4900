@@ -78,13 +78,13 @@ def parse_file(filepath):
         exclude_mip = True
         if (exclude_mip):
             for i, y_vals in enumerate(result_data_y):
-                result_data_y[i][1] = 1800000000.0
+                result_data_y[i][1] = 4000000000.0
 
         index_delete = []
         for i, vals in enumerate(result_data_y):
             max = True
             for v in vals:
-                if (v != 1800000000):
+                if (v != 4000000000):
                     max = False
                     break
 
