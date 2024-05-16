@@ -1061,8 +1061,12 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
             {
                 bundles.at(index_of_least_value).first.emplace_back(good_idx);
                 bundles.at(index_of_least_value).second -= weights.at(good_idx);
+                good_idx++;
                 added = true;
             }
+
+            if (good_idx >= (int)weights.size())
+                break;
         }
 
         int index_of_least_value {};
