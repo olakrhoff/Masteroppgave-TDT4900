@@ -382,6 +382,11 @@ void validate_options()
         if (other_conditions)
             cout << "When -m is active no other arguments for optimisations will be applied" << endl;
     }
+
+    if ((CONFIGURATION.options.goods_order != PICKING_ORDERS_T::NONE || CONFIGURATION.options.agents_order != PICKING_ORDERS_T::NONE) && 
+        CONFIGURATION.options.upper_bound == false)
+        cout << "Picking orders will have no effect on the running time unless the upper bound or bound and boud is turned on." << endl;
+
 }
 
 void write_data_to_file(const vector<uint64_t> &times)
@@ -1026,20 +1031,48 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
     
     if (CONFIGURATION.options.non_naive)
     {
-        vector<pair<good_t, weight_t>> goods {};
-        for (int i = 0; i < (int)weights.size(); ++i)
-            goods.emplace_back(agent.goods.at(i), weights.at(i));
+        vector<pair<vector<int>, weight_t>> bundles {};
 
-        sort(goods.begin(), goods.end(), [](auto a, auto b){ return a.first.value > b.first.value; });
-        auto capacity {agent.capacity};
-        for (int i = num_agents - 1; i < (int)goods.size(); i += num_agents)
+        for (int i = 0; i < (int)num_agents; ++i)
+            bundles.emplace_back(vector<int>(), (double)agent.capacity);
+
+
+        auto valuation = [&agent](vector<int> goods)
         {
-            auto good {goods.at(i)};
-            if (capacity < good.second)
-                continue;
-            capacity -= good.second;
-            value_of_best_solution += good.first.value;
+            int sum {};
+            for (auto idx : goods)
+                sum += agent.goods.at(idx).value;
+
+            return sum;
+        };
+
+        bool added = true;
+        int good_idx {};
+        while (added)
+        {
+            added = false;
+            int index_of_least_value {};
+            for (int i = 0; i < (int)num_agents; ++i)
+            {
+                if (valuation(bundles.at(i).first) < valuation(bundles.at(index_of_least_value).first))
+                    index_of_least_value = i;
+            }
+            if (bundles.at(index_of_least_value).second >= weights.at(good_idx))
+            {
+                bundles.at(index_of_least_value).first.emplace_back(good_idx);
+                bundles.at(index_of_least_value).second -= weights.at(good_idx);
+                added = true;
+            }
         }
+
+        int index_of_least_value {};
+        for (int i = 0; i < (int)num_agents; ++i)
+        {
+            if (valuation(bundles.at(i).first) < valuation(bundles.at(index_of_least_value).first))
+                index_of_least_value = i;
+        }
+
+        value_of_best_solution = valuation(bundles.at(index_of_least_value).first);
     }
 
     stack<state_t> state_stack {};
@@ -1070,12 +1103,6 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
         }
 
 
-        // If an agent gets more than the proportional share there will
-        // exists an agent which gets less, thus there is no point in
-        // exploring this case
-        if (CONFIGURATION.options.non_naive)
-            if (current_state.get_agents_value(0, agent) > proportional_value)
-                continue;
 
         double upper_bound {}, lower_bound {};
         state_t state(num_goods * num_agents);
@@ -1103,13 +1130,20 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
         // the given agent gets the new good
         for (int i = 0; i < (int)num_agents; ++i)
         {
+            // If an agent gets more than the proportional share there will
+            // exists an agent which gets less, thus there is no point in
+            // exploring this case
+            if (CONFIGURATION.options.non_naive)
+                if (current_state.get_agents_value(i, agent) > proportional_value)
+                    continue;
+
             auto new_state = current_state;
             uint64_t new_good = current_state.get_goods_allocated();
             if (new_state.get_agents_weight(i) + weights.at(new_good)
                     <= agent.capacity)
             {
                 new_state.allocate_good_to_agent(new_good, i, weights.at(new_good));
-                
+
                 state_stack.push(new_state);
             }
         }
@@ -1657,8 +1691,8 @@ pair<allocation_t, double> BBCMMS(const vector<agent_t> &agents,
 
     state_t best_solution_yet = start_state;
 
-    // It is proven that the BSIMMS has at least a 1/3-MMS solution 
-    // It has been proven by Halvard Hummel, just now, that 1/2-MMS exists
+    // It is proven that the BSIMMS has at least a 1/3-BSIMMS solution 
+    // It has been proven by Halvard Hummel, just now, that 1/2-BSIMMS exists
     double value_of_best_solution {0.5};
     while (!state_stack.empty())
     {
