@@ -1333,12 +1333,18 @@ vector<uint64_t> get_agents_order(const state_t &state, const vector<agent_t> &a
         case NONE:
             {
                 static vector<uint64_t> none_order_agents {};
-
+                
                 if (none_order_agents.empty())
                     for (int i = 0; i < (int)num_agents; ++i)
                         none_order_agents.push_back(i);
 
                 picking_order = none_order_agents;
+
+                while (picking_order.size() > agents.size())
+                {
+                    auto idx = find(picking_order.begin(), picking_order.end(), picking_order.size() - 1);
+                    picking_order.erase(idx);
+                }
             }
             break;
         case RANDOM: 
@@ -1542,7 +1548,7 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
         value_of_best_solution = valuation(bundles.at(index_of_least_value).first);
     }
 
-
+    
     vector<uint64_t> picking_order_goods = get_picking_order(agents, weights);
 
     stack<state_t> state_stack {};
@@ -1550,7 +1556,6 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
     state_stack.push(start_state);
 
     state_t best_solution_yet = start_state;
-
     double proportional_value = (double)accumulate(agent.goods.begin(), agent.goods.end(), 0) / num_agents;
 
     while (!state_stack.empty())
@@ -1582,7 +1587,9 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
         {
             tie(upper_bound, lower_bound, state, bound) = upper_bound_find_MMS(agent, weights, current_state);
             if (upper_bound <= value_of_best_solution)
+            {
                 continue; // If the upper bound is less than our best solution thus
+            }
             if (CONFIGURATION.options.bound_and_bound)
             {
                 if (bound)
@@ -1623,7 +1630,6 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
             {
                 new_state.allocate_good_to_agent(new_good, i, weights.at(new_good));
 
-                //state_stack.push(new_state);
                 new_states.emplace_back(new_state, true);
             }
             else
@@ -1636,10 +1642,13 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
         new_state.allocate_to_charity(new_good);
         state_stack.push(new_state);
 
+
         vector<uint64_t> agent_order = get_agents_order(current_state, agents, weights);
         for (auto agent_idx : agent_order)
+        {
             if (new_states.at(agent_idx).second)
                 state_stack.push(new_states.at(agent_idx).first);
+        }
     }
 
     return value_of_best_solution;
