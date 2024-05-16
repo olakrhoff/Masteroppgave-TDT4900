@@ -1014,153 +1014,6 @@ tuple<double, double, state_t, bool> upper_bound_find_MMS(const agent_t &agent, 
     return upper_bound(agents, weights, current_state);
 }
 
-/**
- * This function is finds the MMS for an agent, given it's value function
- * and the number of agents in the mix
- */
-double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t> &weights)
-{
-    uint64_t num_goods = agent.goods.size();
-
-    // --- PREPROCESS THE BEST SOLUTION ---
-    vector<agent_t> agents {};
-    for (int i = 0; i < (int)num_agents; ++i)
-        agents.emplace_back(agent);
-
-    double value_of_best_solution {};
-    
-    if (CONFIGURATION.options.non_naive)
-    {
-        vector<pair<vector<int>, weight_t>> bundles {};
-
-        for (int i = 0; i < (int)num_agents; ++i)
-            bundles.emplace_back(vector<int>(), (double)agent.capacity);
-
-
-        auto valuation = [&agent](vector<int> goods)
-        {
-            int sum {};
-            for (auto idx : goods)
-                sum += agent.goods.at(idx).value;
-
-            return sum;
-        };
-
-        bool added = true;
-        int good_idx {};
-        while (added)
-        {
-            added = false;
-            int index_of_least_value {};
-            for (int i = 0; i < (int)num_agents; ++i)
-            {
-                if (valuation(bundles.at(i).first) < valuation(bundles.at(index_of_least_value).first))
-                    index_of_least_value = i;
-            }
-            if (bundles.at(index_of_least_value).second >= weights.at(good_idx))
-            {
-                bundles.at(index_of_least_value).first.emplace_back(good_idx);
-                bundles.at(index_of_least_value).second -= weights.at(good_idx);
-                good_idx++;
-                added = true;
-            }
-
-            if (good_idx >= (int)weights.size())
-                break;
-        }
-
-        int index_of_least_value {};
-        for (int i = 0; i < (int)num_agents; ++i)
-        {
-            if (valuation(bundles.at(i).first) < valuation(bundles.at(index_of_least_value).first))
-                index_of_least_value = i;
-        }
-
-        value_of_best_solution = valuation(bundles.at(index_of_least_value).first);
-    }
-
-    stack<state_t> state_stack {};
-    state_t start_state(num_agents);
-    state_stack.push(start_state);
-
-    state_t best_solution_yet = start_state;
-
-    double proportional_value = (double)accumulate(agent.goods.begin(), agent.goods.end(), 0) / num_agents;
-
-    while (!state_stack.empty())
-    {
-        auto current_state = state_stack.top();
-        state_stack.pop();
-
-        // If we have allocated all the goods we now need to evaluate the
-        // allocation and score it
-        if (current_state.get_goods_allocated() == num_goods)
-        {
-            double value = min_bundle(current_state.get_allocation(), 
-                    agents);
-            if (value > value_of_best_solution)
-            {
-                value_of_best_solution = value;
-                best_solution_yet = current_state;
-            }
-            continue;
-        }
-
-
-
-        double upper_bound {}, lower_bound {};
-        state_t state(num_goods * num_agents);
-        bool bound {};
-        // --- CHECK UPPER BOUND ---
-        if (CONFIGURATION.options.upper_bound && num_goods - current_state.get_goods_allocated() >= (uint64_t)UPPER_BOUND_MIN_LIMIT)
-        {
-            tie(upper_bound, lower_bound, state, bound) = upper_bound_find_MMS(agent, weights, current_state);
-            if (upper_bound <= value_of_best_solution)
-                continue; // If the upper bound is less than our best solution thus
-            if (CONFIGURATION.options.bound_and_bound)
-            {
-                if (bound || lower_bound > value_of_best_solution)
-                {
-                    best_solution_yet = state;
-                    value_of_best_solution = lower_bound;
-                    state_stack.push(current_state);
-                    continue;
-                }
-            }
-        }
-
-
-        // Loop over for each agent and add to the stack the state in which
-        // the given agent gets the new good
-        for (int i = 0; i < (int)num_agents; ++i)
-        {
-            // If an agent gets more than the proportional share there will
-            // exists an agent which gets less, thus there is no point in
-            // exploring this case
-            if (CONFIGURATION.options.non_naive)
-                if (current_state.get_agents_value(i, agent) > proportional_value)
-                    continue;
-
-            auto new_state = current_state;
-            uint64_t new_good = current_state.get_goods_allocated();
-            if (new_state.get_agents_weight(i) + weights.at(new_good)
-                    <= agent.capacity)
-            {
-                new_state.allocate_good_to_agent(new_good, i, weights.at(new_good));
-
-                state_stack.push(new_state);
-            }
-        }
-        // Add the case where the good goes to charity as well, this needs to
-        // be taken into account
-        auto new_state = current_state;
-        uint64_t new_good = current_state.get_goods_allocated();
-        new_state.allocate_to_charity(new_good);
-        state_stack.push(new_state);
-    }
-
-    return value_of_best_solution;
-}
 
 template <typename T>
 double euclidean_distance(const vector<T> &vec)
@@ -1625,6 +1478,174 @@ vector<uint64_t> get_agents_order(const state_t &state, const vector<agent_t> &a
 }
 
 /**
+ * This function is finds the MMS for an agent, given it's value function
+ * and the number of agents in the mix
+ */
+double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t> &weights)
+{
+    uint64_t num_goods = agent.goods.size();
+
+    // --- PREPROCESS THE BEST SOLUTION ---
+    vector<agent_t> agents {};
+    for (int i = 0; i < (int)num_agents; ++i)
+        agents.emplace_back(agent);
+
+    double value_of_best_solution {};
+    
+    if (CONFIGURATION.options.non_naive)
+    {
+        vector<pair<vector<int>, weight_t>> bundles {};
+
+        for (int i = 0; i < (int)num_agents; ++i)
+            bundles.emplace_back(vector<int>(), (double)agent.capacity);
+
+
+        auto valuation = [&agent](vector<int> goods)
+        {
+            int sum {};
+            for (auto idx : goods)
+                sum += agent.goods.at(idx).value;
+
+            return sum;
+        };
+
+        bool added = true;
+        int good_idx {};
+        while (added)
+        {
+            added = false;
+            int index_of_least_value {};
+            for (int i = 0; i < (int)num_agents; ++i)
+            {
+                if (valuation(bundles.at(i).first) < valuation(bundles.at(index_of_least_value).first))
+                    index_of_least_value = i;
+            }
+            if (bundles.at(index_of_least_value).second >= weights.at(good_idx))
+            {
+                bundles.at(index_of_least_value).first.emplace_back(good_idx);
+                bundles.at(index_of_least_value).second -= weights.at(good_idx);
+                good_idx++;
+                added = true;
+            }
+
+            if (good_idx >= (int)weights.size())
+                break;
+        }
+
+        int index_of_least_value {};
+        for (int i = 0; i < (int)num_agents; ++i)
+        {
+            if (valuation(bundles.at(i).first) < valuation(bundles.at(index_of_least_value).first))
+                index_of_least_value = i;
+        }
+
+        value_of_best_solution = valuation(bundles.at(index_of_least_value).first);
+    }
+
+
+    vector<uint64_t> picking_order_goods = get_picking_order(agents, weights);
+
+    stack<state_t> state_stack {};
+    state_t start_state(num_agents);
+    state_stack.push(start_state);
+
+    state_t best_solution_yet = start_state;
+
+    double proportional_value = (double)accumulate(agent.goods.begin(), agent.goods.end(), 0) / num_agents;
+
+    while (!state_stack.empty())
+    {
+        auto current_state = state_stack.top();
+        state_stack.pop();
+
+        // If we have allocated all the goods we now need to evaluate the
+        // allocation and score it
+        if (current_state.get_goods_allocated() == num_goods)
+        {
+            double value = min_bundle(current_state.get_allocation(), 
+                    agents);
+            if (value > value_of_best_solution)
+            {
+                value_of_best_solution = value;
+                best_solution_yet = current_state;
+            }
+            continue;
+        }
+
+
+
+        double upper_bound {}, lower_bound {};
+        state_t state(num_goods * num_agents);
+        bool bound {};
+        // --- CHECK UPPER BOUND ---
+        if (CONFIGURATION.options.upper_bound && num_goods - current_state.get_goods_allocated() >= (uint64_t)UPPER_BOUND_MIN_LIMIT)
+        {
+            tie(upper_bound, lower_bound, state, bound) = upper_bound_find_MMS(agent, weights, current_state);
+            if (upper_bound <= value_of_best_solution)
+                continue; // If the upper bound is less than our best solution thus
+            if (CONFIGURATION.options.bound_and_bound)
+            {
+                if (bound)
+                {
+                    best_solution_yet = state;
+                    value_of_best_solution = lower_bound;
+                    continue;
+                }
+                if (lower_bound > value_of_best_solution)
+                {
+                    best_solution_yet = state;
+                    value_of_best_solution = lower_bound;
+                    state_stack.push(current_state);
+                    continue;
+                }
+            }
+        }
+
+
+        vector<pair<state_t, bool>> new_states {};
+        // Loop over for each agent and add to the stack the state in which
+        // the given agent gets the new good
+        for (int i = 0; i < (int)num_agents; ++i)
+        {
+            // If an agent gets more than the proportional share there will
+            // exists an agent which gets less, thus there is no point in
+            // exploring this case
+            if (CONFIGURATION.options.non_naive)
+                if (current_state.get_agents_value(i, agent) > proportional_value)
+                {
+                    new_states.emplace_back(current_state, false);
+                    continue;
+                }
+            auto new_state = current_state;
+            uint64_t new_good = picking_order_goods.at(current_state.get_goods_allocated());
+            if (new_state.get_agents_weight(i) + weights.at(new_good)
+                    <= agent.capacity)
+            {
+                new_state.allocate_good_to_agent(new_good, i, weights.at(new_good));
+
+                //state_stack.push(new_state);
+                new_states.emplace_back(new_state, true);
+            }
+            else
+                new_states.emplace_back(new_state, false);
+        }
+        // Add the case where the good goes to charity as well, this needs to
+        // be taken into account
+        auto new_state = current_state;
+        uint64_t new_good = picking_order_goods.at(current_state.get_goods_allocated());
+        new_state.allocate_to_charity(new_good);
+        state_stack.push(new_state);
+
+        vector<uint64_t> agent_order = get_agents_order(current_state, agents, weights);
+        for (auto agent_idx : agent_order)
+            if (new_states.at(agent_idx).second)
+                state_stack.push(new_states.at(agent_idx).first);
+    }
+
+    return value_of_best_solution;
+}
+
+/**
  * This is the main funtion for the algorithm
  * Here we will run the B&B algorithm to solve the fair allocation of
  * budget symmetry illustion maximin share (BSIMMS)
@@ -1733,7 +1754,13 @@ pair<allocation_t, double> BBCMMS(const vector<agent_t> &agents,
             // --- CHECK BOUND AND BOUND ---
             if (CONFIGURATION.options.bound_and_bound)
             {
-                if (bound || lower_bound > value_of_best_solution)
+                if (bound)
+                {
+                    best_solution_yet = state;
+                    value_of_best_solution = lower_bound;
+                    continue;
+                }
+                if (lower_bound > value_of_best_solution)
                 {
                     best_solution_yet = state;
                     value_of_best_solution = lower_bound;
