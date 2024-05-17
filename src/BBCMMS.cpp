@@ -1602,8 +1602,6 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
                 {
                     best_solution_yet = state;
                     value_of_best_solution = lower_bound;
-                    state_stack.push(current_state);
-                    continue;
                 }
             }
         }
@@ -1773,8 +1771,6 @@ pair<allocation_t, double> BBCMMS(const vector<agent_t> &agents,
                 {
                     best_solution_yet = state;
                     value_of_best_solution = lower_bound;
-                    state_stack.push(current_state);
-                    continue;
                 }
             }
         }
