@@ -1726,6 +1726,10 @@ pair<allocation_t, double> BBCMMS(const vector<agent_t> &agents,
     // It is proven that the BSIMMS has at least a 1/3-BSIMMS solution 
     // It has been proven by Halvard Hummel, just now, that 1/2-BSIMMS exists
     double value_of_best_solution {0.5};
+
+
+    // varaibles that will be reused
+    double upper_bound {}, lower_bound {};
     while (!state_stack.empty())
     {
         nodes_visited++;
@@ -1750,7 +1754,7 @@ pair<allocation_t, double> BBCMMS(const vector<agent_t> &agents,
         // --- CHECK UPPER BOUND ---
         if (CONFIGURATION.options.upper_bound && num_goods - current_state.get_goods_allocated() >= (uint64_t)UPPER_BOUND_MIN_LIMIT)
         {
-            double upper_bound {}, lower_bound {};
+            upper_bound = lower_bound = 0;
             state_t state(num_goods * num_agents);
             bool bound {};
             tie(upper_bound, lower_bound, state, bound) = upper_bound_with_MMS(agents, weights, agents_MMS, current_state);
@@ -1781,6 +1785,16 @@ pair<allocation_t, double> BBCMMS(const vector<agent_t> &agents,
         // the given agent gets the new good
         for (int i = 0; i < (int)agents.size(); ++i)
         {
+
+            if (CONFIGURATION.options.non_naive)
+            {
+                if (upper_bound < (current_state.get_agents_value(i, agents.at(i)) / agents_MMS.at(i)))
+                {
+                    new_states.emplace_back(current_state, false);
+                    continue;
+                }
+            }
+
             auto new_state = current_state;
             uint64_t new_good_index = picking_order_goods.at(current_state.get_goods_allocated());
             if (new_state.get_agents_weight(i) + weights.at(new_good_index)
