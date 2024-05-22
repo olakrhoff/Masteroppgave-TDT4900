@@ -1712,6 +1712,14 @@ pair<allocation_t, double> BBCMMS(const vector<agent_t> &agents,
 
     // --- HANDLE PREPROCESSING OF OPTIMISATIONS ---
 
+    vector<agent_t> agents_normalised {};
+    for (auto agent : agents)
+    {
+        agents_normalised.emplace_back(agent);
+        for (good_t &good : agents_normalised.back().goods)
+            good.value /= agents_MMS.at(agents_normalised.size() - 1);
+    }
+
     // --- BEGIN TRAVERSING THE SOLUTION SPACE ---
     // We want to traverse the search space in a depth-first manner
     // Therefore we create a stack to keep track of where we are in
@@ -1813,8 +1821,8 @@ pair<allocation_t, double> BBCMMS(const vector<agent_t> &agents,
         uint64_t new_good_index = current_state.get_goods_allocated();
         new_state.allocate_to_charity(new_good_index);
         state_stack.push(new_state);
-        
-        vector<uint64_t> agent_order = get_agents_order(current_state, agents, weights);
+       
+        vector<uint64_t> agent_order = get_agents_order(current_state, agents_normalised, weights);
         for (auto agent_idx : agent_order)
             if (new_states.at(agent_idx).second)
                 state_stack.push(new_states.at(agent_idx).first);
