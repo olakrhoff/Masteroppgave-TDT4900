@@ -11,9 +11,6 @@ parser = argparse.ArgumentParser(description='Save a scatter plot from a CSV fil
 # Add the CSV file path argument
 parser.add_argument('csv_filepath', type=str, help='Path to the CSV file')
 
-# Add an argument for the output image filename
-parser.add_argument('output_basename', type=str, help='Name of the output image file')
-
 parser.add_argument('--reg', action='store_true', help='Include a regression line in the plots')
 # Parse the arguments from the command line
 args = parser.parse_args()
@@ -21,7 +18,7 @@ args = parser.parse_args()
 # Read the CSV file into a pandas DataFrame
 data = pd.read_csv(args.csv_filepath)
 
-data["log_2(n^m)"] = np.log2(data['N'].astype("uint64")) * data['M'].astype("uint64")
+data["log_2((n+1)^m)"] = np.log2(data['N'].astype("uint64") + 1) * data['M'].astype("uint64")
 data["TIME"] = np.log2(data["TIME"])
 # Get the list of column names
 columns = data.columns
@@ -49,8 +46,11 @@ for idx, x_column in enumerate(columns):
         slope = model.coef_[0]
         intercept = model.intercept_
 
+        mse = mean_squared_error(y_vals, y_pred)
+        rmse = np.sqrt(mse)
+
         # Plot the linear regression line
-        plt.plot(data[x_column], y_pred, color='red', linestyle='--', label=f'Regression (slope={slope:.2f}, intercept={intercept:.2f})')
+        plt.plot(data[x_column], y_pred, color='red', linestyle='--', label=f'Regression (slope={slope:.2f}, intercept={intercept:.2f}, RMSE={rmse:.2f})')
 
     # Add labels and a title to the plot
     plt.xlabel(x_column)
@@ -61,7 +61,8 @@ for idx, x_column in enumerate(columns):
         plt.legend()
 
     # Generate a unique output filename
-    output_filename = f"{args.output_basename}_{idx}"
+    name = args.csv_filepath.split('.')[0]
+    output_filename = f"{name}_{idx}"
     if args.reg:
         output_filename += "_reg"
     output_filename += ".png"

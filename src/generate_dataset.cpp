@@ -435,7 +435,7 @@ vector<uint64_t> generate_permutation(double phi, uint64_t num)
         for (; j > 0; --j)
         {
             // Find the probablity at each step for the chance that we stop here
-            // and 'j' bacomes the 'i'-th index's index
+            // and 'j' becomes the 'i'-th index's index
             double probablity = pow(phi, i - j); 
             double divider = 0;
             for (int s = 0; s <= i; ++s)

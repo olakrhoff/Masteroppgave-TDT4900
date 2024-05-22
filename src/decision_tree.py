@@ -7,7 +7,7 @@ import graphviz
 import math
 
 def create_and_plot_tree(attribute_data_x, result_data_y, attribute_names=None, target_names=None, graph_name="decision_tree"):
-    clf = tree.DecisionTreeClassifier(criterion="entropy", random_state=65, max_depth=len(attribute_names),  min_samples_leaf=math.ceil(len(result_data_y) * 0.05), min_impurity_decrease=0.1)
+    clf = tree.DecisionTreeClassifier(criterion="entropy", splitter="best", random_state=65, max_depth=len(attribute_names),  min_samples_leaf=math.ceil(len(result_data_y) * 0.05), min_impurity_decrease=0.1)
     clf = clf.fit(attribute_data_x, result_data_y)
    
     #target_names[0] = "naive"

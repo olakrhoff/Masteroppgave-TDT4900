@@ -73,7 +73,9 @@ execute: build
 run_bb: build
 #	./src/bin/BBCMMS -d data/intervals/N/small2.txt -o data/analysis_small -x g24:24 -u
 #	./src/bin/BBCMMS -d data/intervals/M/small/bnvnwn/small2.txt -o data/analysis_small -e data/results/data1.txt -u -b -n -p gn -p ap
-	./src/bin/BBCMMS -d data/intervals/M/small/bnvnwn/small2.txt -e data/results/data1.txt -m
+	./src/bin/BBCMMS -d data/intervals/N/medium/bnvnwn/medium1.txt -e data/results/data1.txt -m
+	./src/bin/BBCMMS -d data/intervals/N/medium/bnvnwn/medium1.txt -e data/results/data2.txt -n -u -p gp -r g -p ap
+	./src/bin/BBCMMS -d data/intervals/N/medium/bnvnwn/medium1.txt -e data/results/data3.txt
 
 analysis:
 	python3 src/analysis.py
