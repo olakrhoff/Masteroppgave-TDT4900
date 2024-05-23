@@ -2,6 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import argparse
 import seaborn as sns
+import statsmodels.api as sm
 
 def plot_data(file_path):
     # Load the data into a pandas DataFrame
@@ -22,6 +23,14 @@ def plot_data(file_path):
         if column != x_column and column != 'Filename':
             sns.regplot(scatter=True, logx=False, label=column, x=x_column, y=column, data=data, ci=95)
 
+            X = sm.add_constant(data[x_column])  # Adds a constant term to the predictor
+            print(X)
+            y = data[column]
+            model = sm.OLS(y, X).fit()
+            coefficients = model.params
+
+            print(f"Regression coefficients for {column}:")
+            print(f"Intercept: {coefficients[0]}, Slope: {coefficients[1]}")
     # Add labels and title
     plt.xlabel('# of Nodes: log2((n+1)^m)')
     plt.ylabel('Time: log2(Time) of microseconds')
