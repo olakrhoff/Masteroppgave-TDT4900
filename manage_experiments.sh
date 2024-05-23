@@ -94,7 +94,7 @@ else
     fi
 fi
 
-max_jobs=50000
+max_jobs=20000
 to_start_jobs=$((max_jobs - total_jobs))
 local_counter=0
 ready_jobs="$(ls -A run_plans | wc -l)"
