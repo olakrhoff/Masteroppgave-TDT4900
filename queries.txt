@@ -21,7 +21,7 @@ SELECT Filename, (M * log2(N + 1)) as "log",
      log2(MEDIAN(CASE WHEN NON_NAIVE = 0 and "B&B" = 1 THEN TIME END)) AS Bound_Bound,
      log2(MEDIAN(CASE WHEN MIP_SOLVER = 1 THEN TIME END)) AS MIP_Solver,
  FROM 
-     runs
+     runs WHERE TIME != 4000000000
  GROUP BY 
      Filename, log
  order by log asc;

@@ -74,7 +74,11 @@ def plot_frequency_distributions(frequency_array, unique_configs, output_dir):
             print(f"x_values: {x_values[:10]}...{x_values[-10:]}")
             print(f"y_values: {y_values[:10]}...{y_values[-10:]}")
 
-            sns.barplot(x=x_values, y=y_values)
+            data = pd.Series(y_values)
+            window_size = 5
+            smooth_data = data.rolling(window=window_size).mean()
+
+            plt.plot(x_values, smooth_data)
             plt.title(f'Frequency of Rank Occurrences for Configuration: {config}')
             plt.xlabel('Rank')
             plt.ylabel('Frequency')
