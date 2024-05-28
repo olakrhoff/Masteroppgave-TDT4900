@@ -16,11 +16,13 @@ if len(sys.argv) >= 3:
 # Read the input CSV file
 table = pd.read_csv(input_filename, sep=",")
 
+table.columns = table.columns.str.strip()
+
 # Get the name of the last column
 last_column_name = table.columns[-1]
 
 # Calculate the new column "log_2((N+1)^M)"
-table["log_2((N+1)^M)"] = np.log2((table["N"].astype("uint64")) + 1) * table["M"].astype("uint64") #* table["BUDGET_PERCENT_USED"].astype("float")
+table["log_2((N+1)^M)"] = np.log2((table["N"].astype("uint64")) + 1) * (table["M"].astype("uint64") + 1) #* table["BUDGET_PERCENT_USED"].astype("float")
 
 # Transform the last column using log base 2
 table[last_column_name] = np.log2(table[last_column_name])

@@ -44,3 +44,17 @@ SELECT Filename, (M * log2(N + 1)) as "log",
  GROUP BY 
      Filename, log
  order by log asc;
+
+
+
+
+
+
+
+SELECT Filename, (M * log2(N + 1)) as "log", 
+     log2(MEDIAN(CASE WHEN NON_NAIVE = 0 and MIP_SOLVER = 0 and UPPER_BOUND = 0 THEN TIME END)) AS Naive
+ FROM 
+     orders where TIME != 4000000000
+ GROUP BY 
+     Filename, log
+ order by log asc;

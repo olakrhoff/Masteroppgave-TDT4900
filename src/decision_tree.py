@@ -1,5 +1,6 @@
 import sys
 import numpy as np
+import pandas as pd
 from sklearn.datasets import load_iris
 from sklearn import tree
 from matplotlib import pyplot as plt
@@ -39,46 +40,119 @@ def test():
 def parse_file(filepath):
     parsed = False
     attribute_data_x = []
-    result_data_y = []
-    result_data_y_temp = []
+    result_data_y = {}
     attribute_names = None
-    target_names = None
+    target_names = []
+    opt_map = {}
 
-    lines = 0
+    df = pd.read_csv(filepath)
+    df.columns = df.columns.str.strip()
+
+    df = df.sort_values(by=['Filename', 'UPPER_BOUND', 'B&B', 'NON_NAIVE', 'GOODS_ORDER', 'AGETNS_ORDER', 'REVERSE_GOODS_ORDER', 'REVERSE_AGENTS_ORDER', 'MIP_SOLVER'], ascending=[True, True, True, True, True, True, True, True, True])
+
+    columns_to_join = ['UPPER_BOUND', 'B&B', 'NON_NAIVE', 'GOODS_ORDER', 'AGETNS_ORDER', 'REVERSE_GOODS_ORDER', 'REVERSE_AGENTS_ORDER', 'MIP_SOLVER']
+    # Create a new column by joining the values of the specified columns with a space separator
+    df['Optimisation'] = df[columns_to_join].astype(str).agg(' '.join, axis=1)
+    df = df.drop(columns=columns_to_join)
+
+    df['(m+1)log2(n+1)'] = (df['M'] + 1) * np.log2(df['N'] + 1)
+    
+    grouped = df.groupby('Filename').apply(lambda x: x[['TIME', 'Optimisation']].values.tolist())
+
+    # Convert the grouped data into a list of lists
+    list_of_time_arrays = grouped.tolist()
+
+    print(len(list_of_time_arrays))
+
+    filtered_list_of_time_arrays = [times for times in list_of_time_arrays if len(times) == 403]
+
+    print(len(filtered_list_of_time_arrays))
+
+
+    columns_to_check = ['Filename', 'N', 'M', 'M/N', 'AVG_PERM_DIST', 'AVG_VAL_DIST', 'BUDGET_PERCENT_USED']
+    
+    # Get the distinct combinations of these columns
+    one_row_per_filename = df[columns_to_check].groupby('Filename').first().reset_index()
+
+    one_row_per_filename = one_row_per_filename.sort_values(by='Filename')
+    # Remove the 'Filename' column
+    one_row_per_filename = one_row_per_filename.drop(columns=['Filename'])
+    
+    for column in one_row_per_filename.columns:
+        one_row_per_filename[column] = pd.to_numeric(one_row_per_filename[column], errors='coerce')
+
+    # Convert the result to a list of lists
+    list_of_combinations = one_row_per_filename.values.tolist()
+    
+    # Print the list of distinct combinations
+    print(list_of_combinations)
+
+    #TODO: Get the target names and the result data
+
+    return True, list_of_combinations, result_data_y, columns_to_check[1:], target_names
+
+    grouped = df.groupby(['Filename', 'N', 'M', 'M/N', 'AVG_PERM_DIST', 'AVG_VAL_DIST', 'BUDGET_PERCENT_USED'])
+
+    list_of_attribute = []
+    for name, group in grouped:
+        # Convert group data to list and append to the array
+        list_of_attribute.append(group.values)    
+    print(list_of_attribute)
+
+
+
+
+    first_line = True
     try:
         with open(filepath, 'r') as file:
             for line in file:
                 parsed = True
-                if (lines == 0):
+                if first_line:
                     attribute_names = line.split(',')[1:7]
-                    attribute_names.append("log_2(n^m)")
+                    attribute_names.append("(m+1)log_2(n+1)")
+                    first_line = False
                 else:
                     temp = line.split(',')
-                    if ((lines - 1) % 403 == 0):
+
+                    filename = temp[0]
+                    if filename not in result_data_y:
+                        result_data_y[filename] = {}
+                    
                         attribute_data_x.append([float(val) for val in temp[1:7]])
                         n = attribute_data_x[-1][0]
                         m = attribute_data_x[-1][1]
-                        attribute_data_x[-1].append(m*np.log2(n))
+                        attribute_data_x[-1].append((m+1)*np.log2(n + 1))
 
-                        if (len(result_data_y_temp) != 0):
-                            result_data_y.append(result_data_y_temp)
-                            result_data_y_temp = []
-                    result_data_y_temp.append(float(temp[-1]))
-                    if (target_names == None):
-                        target_names = []
-                    if (len(target_names) != 403):
-                        target_names.append(''.join(temp[7:15]))
-                lines += 1
+                    opt = ''.join(temp[7:15]).strip(" ");
+                    if opt not in opt_map:
+                        opt_map[opt] = len(opt_map)
+                        target_names.append(opt)
+                    
+                    filename = temp[0]
+                    if filename not in result_data_y:
+                        result_data_y[filename] = {}
+
+                    result_data_y[filename][opt] = float(temp[-1])
+                    
+
+        sorted_keys = sorted(opt_map.keys())
+
+        # Create a new dictionary to hold the sorted keys and corresponding values
+        sorted_opt_map = {}
         
-        result_data_y.append(result_data_y_temp)
-        
+        # Assign sorted keys and corresponding values to the new dictionary
+        for i, key in enumerate(sorted_keys):
+            sorted_opt_map[key] = i
 
+        opt_map = sorted_opt_map
 
-        # Now we need to find out which result did the best
         exclude_mip = True
+        opt_mip = '0 0 0 0 0 0 0 1'
+
         if (exclude_mip):
-            for i, y_vals in enumerate(result_data_y):
-                result_data_y[i][1] = 4000000000.0
+            for filename, y_vals in result_data_y.items():
+                if opt_mip in y_vals:
+                    y_vals[opt_mip] = 4000000000
 
         index_delete = []
         for i, vals in enumerate(result_data_y):
@@ -118,6 +192,8 @@ def parse_file(filepath):
     except FileNotFoundError:
         print("File (", filepath, ") could not be found")
         return False, None, None, None, None
+    print(len(attribute_data_x))
+    print(len(result_data_y))
     return parsed, attribute_data_x, result_data_y, attribute_names, target_names
 
 if __name__ == "__main__":
