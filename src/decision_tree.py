@@ -38,13 +38,6 @@ def test():
     print(iris.target_names)
 
 def parse_file(filepath):
-    parsed = False
-    attribute_data_x = []
-    result_data_y = {}
-    attribute_names = None
-    target_names = []
-    opt_map = {}
-
     df = pd.read_csv(filepath)
     df.columns = df.columns.str.strip()
 
@@ -55,26 +48,36 @@ def parse_file(filepath):
     df['Optimisation'] = df[columns_to_join].astype(str).agg(' '.join, axis=1)
     df = df.drop(columns=columns_to_join)
 
+    unique_optimizations = df['Optimisation'].unique()
+    opt_map = {opt: idx for idx, opt in enumerate(unique_optimizations)}
+    df['OptIndex'] = df['Optimisation'].map(opt_map)
+
+
     df['(m+1)log2(n+1)'] = (df['M'] + 1) * np.log2(df['N'] + 1)
     
-    grouped = df.groupby('Filename').apply(lambda x: x[['TIME', 'Optimisation']].values.tolist())
-
-    # Convert the grouped data into a list of lists
-    list_of_time_arrays = grouped.tolist()
-
-    print(len(list_of_time_arrays))
-
-    filtered_list_of_time_arrays = [times for times in list_of_time_arrays if len(times) == 403]
-
-    print(len(filtered_list_of_time_arrays))
-
-
     columns_to_check = ['Filename', 'N', 'M', 'M/N', 'AVG_PERM_DIST', 'AVG_VAL_DIST', 'BUDGET_PERCENT_USED']
+    one_row_per_filename = df[columns_to_check].groupby('Filename').first().reset_index()
+    one_row_per_filename = one_row_per_filename.sort_values(by='Filename')
+
+    best_runs = []
+
+    grouped = df.groupby('Filename')
+    ignore_MIP = True
+    index_MIP = 1
+    for filename, group in grouped:
+        if ignore_MIP:
+            group = group[group['OptIndex'] != index_MIP]
+        min_time_idx = group['TIME'].idxmin()
+        best_run_opt_index = group.loc[min_time_idx, 'OptIndex']
+        best_time = group.loc[min_time_idx, 'TIME']
+
+        if best_time == 4000000000:
+            one_row_per_filename = one_row_per_filename[one_row_per_filename['Filename'] != filename]
+        else:
+            best_runs.append(best_run_opt_index)
+
     
     # Get the distinct combinations of these columns
-    one_row_per_filename = df[columns_to_check].groupby('Filename').first().reset_index()
-
-    one_row_per_filename = one_row_per_filename.sort_values(by='Filename')
     # Remove the 'Filename' column
     one_row_per_filename = one_row_per_filename.drop(columns=['Filename'])
     
@@ -85,116 +88,13 @@ def parse_file(filepath):
     list_of_combinations = one_row_per_filename.values.tolist()
     
     # Print the list of distinct combinations
-    print(list_of_combinations)
+    #print(list_of_combinations)
 
-    #TODO: Get the target names and the result data
+    for opt_name, opt_index in opt_map.items():
+        list_of_combinations.append([0, 0, 0, 0, 0, 0])
+        best_runs.append(opt_index)
 
-    return True, list_of_combinations, result_data_y, columns_to_check[1:], target_names
-
-    grouped = df.groupby(['Filename', 'N', 'M', 'M/N', 'AVG_PERM_DIST', 'AVG_VAL_DIST', 'BUDGET_PERCENT_USED'])
-
-    list_of_attribute = []
-    for name, group in grouped:
-        # Convert group data to list and append to the array
-        list_of_attribute.append(group.values)    
-    print(list_of_attribute)
-
-
-
-
-    first_line = True
-    try:
-        with open(filepath, 'r') as file:
-            for line in file:
-                parsed = True
-                if first_line:
-                    attribute_names = line.split(',')[1:7]
-                    attribute_names.append("(m+1)log_2(n+1)")
-                    first_line = False
-                else:
-                    temp = line.split(',')
-
-                    filename = temp[0]
-                    if filename not in result_data_y:
-                        result_data_y[filename] = {}
-                    
-                        attribute_data_x.append([float(val) for val in temp[1:7]])
-                        n = attribute_data_x[-1][0]
-                        m = attribute_data_x[-1][1]
-                        attribute_data_x[-1].append((m+1)*np.log2(n + 1))
-
-                    opt = ''.join(temp[7:15]).strip(" ");
-                    if opt not in opt_map:
-                        opt_map[opt] = len(opt_map)
-                        target_names.append(opt)
-                    
-                    filename = temp[0]
-                    if filename not in result_data_y:
-                        result_data_y[filename] = {}
-
-                    result_data_y[filename][opt] = float(temp[-1])
-                    
-
-        sorted_keys = sorted(opt_map.keys())
-
-        # Create a new dictionary to hold the sorted keys and corresponding values
-        sorted_opt_map = {}
-        
-        # Assign sorted keys and corresponding values to the new dictionary
-        for i, key in enumerate(sorted_keys):
-            sorted_opt_map[key] = i
-
-        opt_map = sorted_opt_map
-
-        exclude_mip = True
-        opt_mip = '0 0 0 0 0 0 0 1'
-
-        if (exclude_mip):
-            for filename, y_vals in result_data_y.items():
-                if opt_mip in y_vals:
-                    y_vals[opt_mip] = 4000000000
-
-        index_delete = []
-        for i, vals in enumerate(result_data_y):
-            max = True
-            for v in vals:
-                if (v != 4000000000):
-                    max = False
-                    break
-
-            if (max):
-                index_delete.append(i)
-
-        index_delete.reverse()
-        for index in index_delete:
-            del result_data_y[index]
-            del attribute_data_x[index]
-    
-        new_results = []
-       
-        for i, y_values in enumerate(result_data_y):
-            # Find the index of the smallest element
-            min_index = y_values.index(min(y_values))  # Get the index of the minimum value
-
-            # Get the corresponding value from target_names
-            new_results.append(min_index)
-        result_data_y = new_results
-        #result_data_y[0] = 1
-
-        for i in range(0, 403):
-            attribute_data_x.append([0, 0, 0, 0, 0, 0, 0])
-            result_data_y.append(i)
-
-        #result_data_y_flat = [item for sublist in result_data_y for item in sublist]
-        #result_data_y_flat = [float(x) for x in result_data_y_flat]
-        #print("Structure of result_data_y:", [len(x) for x in result_data_y])
-
-    except FileNotFoundError:
-        print("File (", filepath, ") could not be found")
-        return False, None, None, None, None
-    print(len(attribute_data_x))
-    print(len(result_data_y))
-    return parsed, attribute_data_x, result_data_y, attribute_names, target_names
+    return True, list_of_combinations, best_runs, columns_to_check[1:], unique_optimizations
 
 if __name__ == "__main__":
     print("Creating decision tree...")
