@@ -1038,7 +1038,18 @@ double value_distance(const agent_t &value_a, const agent_t &value_b)
 
     try
     {
-        return acos(dot_product / length);
+        auto val = dot_product / length;
+
+        if (val > 1)
+            val = 1;
+        else if (val < 0)
+            val = 0;
+        auto radians = acos(val);
+        if (isnan(radians))
+        {
+            cout << "Calculated radians is not a number" << endl;
+            exit(EXIT_FAILURE);
+        }
     }
     catch (...)
     {
