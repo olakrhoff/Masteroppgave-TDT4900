@@ -1584,9 +1584,10 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
         {
             value_of_best_solution = value;
             best_solution_yet = current_state;
-            continue;
         }
 
+        if (current_state.get_goods_allocated() == num_goods)
+            continue;
 
 
         double upper_bound {}, lower_bound {};
@@ -1761,8 +1762,9 @@ pair<allocation_t, double> BBCMMS(const vector<agent_t> &agents,
         {
             value_of_best_solution = value;
             best_solution_yet = current_state;
-            continue;
         }
+        if (current_state.get_goods_allocated() == num_goods)
+            continue;
 
         // --- CHECK UPPER BOUND ---
         if (CONFIGURATION.options.upper_bound && num_goods - current_state.get_goods_allocated() >= (uint64_t)UPPER_BOUND_MIN_LIMIT)
