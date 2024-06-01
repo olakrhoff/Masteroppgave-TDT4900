@@ -41,6 +41,7 @@ pair<int, int> get_interval(const string &line)
     if (numbers.size() != 2)
     {
         cout << "Should get two numbers back when parsing an interval" << endl;
+        cout << "Failed to extract from this: " << line << endl;
         exit(EXIT_FAILURE);
     }
 
@@ -289,7 +290,7 @@ void validate_options()
 
     if (FILE_OUTPUT_PATH == "" || FILE_OUTPUT_PATH.empty())
     {
-        cout << "The output file path must be given: -p <filepath>" << endl;
+        cout << "The output file path must be given: -o <filepath>" << endl;
         exit(EXIT_FAILURE);
     }
 
