@@ -1578,17 +1578,12 @@ double find_MMS(const agent_t &agent, uint64_t num_agents, const vector<weight_t
         auto current_state = state_stack.top();
         state_stack.pop();
 
-        // If we have allocated all the goods we now need to evaluate the
-        // allocation and score it
-        if (current_state.get_goods_allocated() == num_goods)
+        double value = min_bundle(current_state.get_allocation(), 
+                agents);
+        if (value > value_of_best_solution)
         {
-            double value = min_bundle(current_state.get_allocation(), 
-                    agents);
-            if (value > value_of_best_solution)
-            {
-                value_of_best_solution = value;
-                best_solution_yet = current_state;
-            }
+            value_of_best_solution = value;
+            best_solution_yet = current_state;
             continue;
         }
 
@@ -1760,17 +1755,12 @@ pair<allocation_t, double> BBCMMS(const vector<agent_t> &agents,
         auto current_state = state_stack.top();
         state_stack.pop();
 
-        // If we have allocated all the goods we now need to evaluate the
-        // allocation and score it
-        if ((int)current_state.get_goods_allocated() == num_goods)
+        double value = alpha_MMS_of_allocation(current_state.get_allocation(),
+                agents, agents_MMS);
+        if (value > value_of_best_solution)
         {
-            double value = alpha_MMS_of_allocation(current_state.get_allocation(),
-                    agents, agents_MMS);
-            if (value > value_of_best_solution)
-            {
-                value_of_best_solution = value;
-                best_solution_yet = current_state;
-            }
+            value_of_best_solution = value;
+            best_solution_yet = current_state;
             continue;
         }
 
