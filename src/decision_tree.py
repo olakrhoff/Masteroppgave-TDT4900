@@ -1,7 +1,9 @@
 import sys
+import argparse
 import numpy as np
 import pandas as pd
 from sklearn.datasets import load_iris
+from sklearn.metrics import accuracy_score
 from sklearn import tree
 from matplotlib import pyplot as plt
 import graphviz 
@@ -23,6 +25,18 @@ def create_and_plot_tree(attribute_data_x, result_data_y, attribute_names=None, 
     graph = graphviz.Source(dot_data)  
     graph.render(graph_name)
 
+    # Make predictions on the entire dataset
+    y_pred = clf.predict(attribute_data_x)
+    
+    # Calculate and print the accuracy
+    accuracy = accuracy_score(result_data_y, y_pred)
+    print(f"Classification accuracy: {accuracy * 100:.2f}%")
+    
+    # Count correct classifications
+    correct_classifications = np.sum(result_data_y == y_pred)
+    print(f"Number of correct classifications: {correct_classifications} out of {len(result_data_y)}")
+    
+
     #result_data_y = np.array(result_data_y)  # Convert to numpy array for consistency
     #best_y = np.array([min(arr) for arr in result_data_y])
     
@@ -37,7 +51,7 @@ def test():
     print(iris.feature_names)
     print(iris.target_names)
 
-def parse_file(filepath):
+def parse_file(filepath, ignore_MIP):
     df = pd.read_csv(filepath)
     df.columns = df.columns.str.strip()
 
@@ -62,7 +76,6 @@ def parse_file(filepath):
     best_runs = []
 
     grouped = df.groupby('Filename')
-    ignore_MIP = True
     index_MIP = 1
     for filename, group in grouped:
         if ignore_MIP:
@@ -98,21 +111,21 @@ def parse_file(filepath):
 
 if __name__ == "__main__":
     print("Creating decision tree...")
-
-    filename = None
-    if len(sys.argv) != 2:
-        print("Incorrect numbers of arguments passed, expected one argument")
-        print("python3 decision_tree.py <filepath>")
-        exit(1)
     
-    filename = sys.argv[-1]
+    parser = argparse.ArgumentParser(description="Create decision tree from input data")
+    parser.add_argument("filepath", metavar="filepath", type=str, help="Path to input file")
+    parser.add_argument("--ignoreMIP", action="store_true", help="Ignore MIP optimization")
 
+    # Parse command-line arguments
+    args = parser.parse_args()
+
+    filename = args.filepath
+    
     if (filename == "test"):
         # The test runs the test code with the iris dataset
         test()
-
     else:
-        parsed, attribute_data_x, result_data_y, attribute_names, target_names = parse_file(filename)
+        parsed, attribute_data_x, result_data_y, attribute_names, target_names = parse_file(filename, args.ignoreMIP)
         if (not parsed):
             print("Could not parse input file")
             exit(1)

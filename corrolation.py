@@ -19,7 +19,7 @@ table = pd.read_csv(input_filename, sep=",")
 table.columns = table.columns.str.strip()
 
 # Get the name of the last column
-last_column_name = table.columns[-1]
+last_column_name = 'TIME' #table.columns[-1]
 
 # Calculate the new column "log_2((N+1)^M)"
 table["log_2((N+1)^M)"] = np.log2((table["N"].astype("uint64")) + 1) * (table["M"].astype("uint64") + 1) #* table["BUDGET_PERCENT_USED"].astype("float")

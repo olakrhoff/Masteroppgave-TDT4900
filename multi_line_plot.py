@@ -30,7 +30,7 @@ def plot_data(file_path, plot_title):
     # Iterate over each column and plot it against 'log' using regplot
     for column in data.columns:
         if column != x_column and column != 'Filename':
-            sns.regplot(scatter=True, logx=False, label=column, x=x_column, y=column, data=data, ci=95, marker=markers[marker_index], line_kws={'linestyle': line_styles[line_style_index]}, color=colours[colour_index])
+            sns.regplot(order=1, scatter=True, logx=False, label=column, x=x_column, y=column, data=data, ci=95, marker=markers[marker_index], line_kws={'linestyle': line_styles[line_style_index]}, color=colours[colour_index])
 
             handle = Line2D(
                 [0], [0],
