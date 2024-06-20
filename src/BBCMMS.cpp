@@ -1166,7 +1166,14 @@ double find_avg_permutation_distance(const vector<agent_t> &agents)
     double m = agents.at(0).goods.size();
     double max_perm_dist = 0.5 * m * (m - 1);
 
-    return avg_perm_dist / max_perm_dist; // Return normalised value
+    double normalisation_factor {};
+
+    if (((int)n % 2) == 0)
+        normalisation_factor = n / (2 * (n - 1));
+    else
+        normalisation_factor = (n + 1) / (2 * n);
+
+    return (avg_perm_dist / max_perm_dist) / normalisation_factor; // Return normalised value
 }
 
 
@@ -1320,6 +1327,11 @@ vector<uint64_t> get_picking_order(const vector<agent_t> &agents, const vector<w
                 for (auto [nash, idx] : ordering)
                     picking_order.emplace_back(idx);
 
+                
+                cout << "PICKING ORDER:" << endl;
+                for (auto [val, idx] : ordering)
+                    cout << val << "(" << idx << ")" << ", ";
+                cout << endl;
                 break;
             }
        default: 

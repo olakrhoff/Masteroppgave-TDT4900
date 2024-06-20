@@ -42,8 +42,11 @@ def plot_data(file_path, plot_title):
             legend_handles.append(handle)
 
             marker_index += 1
+            marker_index %= len(markers)
             line_style_index += 1
+            line_style_index %= len(line_styles)
             colour_index += 1
+            colour_index %= len(colours)
             #X = sm.add_constant(data[x_column])  # Adds a constant term to the predictor
             #print(X)
             #y = data[column]
@@ -61,7 +64,7 @@ def plot_data(file_path, plot_title):
     else:
         plt.title('ADD TITLE')
 
-    plt.legend(handles=legend_handles, loc='upper left')
+    plt.legend(handles=legend_handles, loc='upper left', ncol=1)
 
     # Show the plot
     plt.show()
