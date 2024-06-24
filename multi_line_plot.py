@@ -5,7 +5,7 @@ import seaborn as sns
 import statsmodels.api as sm
 from matplotlib.lines import Line2D
 
-def plot_data(file_path, plot_title):
+def plot_data(file_path, plot_title, x_label):
     # Load the data into a pandas DataFrame
     data = pd.read_csv(file_path)
 
@@ -56,7 +56,11 @@ def plot_data(file_path, plot_title):
             #print(f"Regression coefficients for {column}:")
             #print(f"Intercept: {coefficients[0]}, Slope: {coefficients[1]}")
     # Add labels and title
-    plt.xlabel('# of Nodes: log2((n+1)^(m+1) - 1)')
+    if x_label == '':
+        plt.xlabel('# of Nodes: log2((n+1)^(m+1) - 1)')
+    else:
+        plt.xlabel(x_label)
+
     plt.ylabel('Time: log2(Time) of microseconds')
 
     if plot_title:
@@ -74,10 +78,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Plot data from a CSV file.')
     parser.add_argument('filename', type=str, help='The path to the CSV file to be plotted.')
     parser.add_argument('--title', type=str, default='', help='The title for the plot.')
+    parser.add_argument('--x', type=str, default='', help='The label for the x-axis.')
 
     # Parse arguments
     args = parser.parse_args()
 
     # Call the plot function with the provided filename
-    plot_data(args.filename, args.title)
+    plot_data(args.filename, args.title, args.x)
 
