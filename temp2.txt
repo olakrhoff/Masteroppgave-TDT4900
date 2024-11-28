@@ -1,0 +1,11 @@
+copy (SELECT Filename, (AVG_PERM_DIST) as "log", 
+     log2(MEDIAN(CASE WHEN GOODS_ORDER = 2 and REVERSE_GOODS_ORDER = 0 THEN TIME END)) AS TIME_NASH,
+     log2(MEDIAN(CASE WHEN GOODS_ORDER = 2 and REVERSE_GOODS_ORDER = 1 THEN TIME END)) AS TIME_NASH_REV,
+     log2(MEDIAN(CASE WHEN GOODS_ORDER = 3 and REVERSE_GOODS_ORDER = 0 THEN TIME END)) AS TIME_VALUE,
+     log2(MEDIAN(CASE WHEN GOODS_ORDER = 3 and REVERSE_GOODS_ORDER = 1 THEN TIME END)) AS TIME_VALUE_REV,
+ FROM 
+     runs
+ GROUP BY 
+     Filename, log
+ order by log asc) to 'temp/nash_val.csv' (header, delimiter ',');
+

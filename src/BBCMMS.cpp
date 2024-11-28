@@ -1422,15 +1422,11 @@ vector<uint64_t> get_agents_order(const state_t &state, const vector<agent_t> &a
                     ordering.emplace_back(0, agent_idx);
                     auto bundle = state.get_allocation().get_goods_allocated_to_agent(agent_idx);
                     
-                    for (int agent_idx_inner = 0; agent_idx_inner < num_agents; ++agent_idx_inner)
-                    {
-                        double value_of_bundle {0};
-                        for (auto good_idx : bundle)
-                            value_of_bundle += agents.at(agent_idx_inner).goods.at(good_idx).value;
+                    double value_of_bundle {0};
+                    for (auto good_idx : bundle)
+                        value_of_bundle += agents.at(agent_idx).goods.at(good_idx).value;
 
-                        ordering.back().first += value_of_bundle;
-                    }
-                    ordering.back().first /= num_agents;
+                    ordering.back().first = value_of_bundle;
                 }
 
                 // Sort them from lowest to highest Max score
